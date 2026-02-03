@@ -1,13 +1,16 @@
 import Phaser from 'phaser';
 import { GAME_CONFIG } from '@shared/constants';
 import { Player } from '../entities/Player';
+import { Item } from '../entities/Item';
 import { InputManager } from '../input/InputManager';
 import { BulletManager } from '../managers/BulletManager';
+import { ItemManager } from '../managers/ItemManager';
 
 export class GameScene extends Phaser.Scene {
   public localPlayer!: Player;
   private inputManager!: InputManager;
   private bulletManager!: BulletManager;
+  private itemManager!: ItemManager;
 
   // HUD 元素
   private weaponText!: Phaser.GameObjects.Text;
@@ -48,6 +51,21 @@ export class GameScene extends Phaser.Scene {
     // 初始化子弹管理器
     this.bulletManager = new BulletManager(this);
     this.localPlayer.setBulletManager(this.bulletManager);
+
+    // 初始化道具管理器
+    this.itemManager = new ItemManager(this);
+    this.itemManager.startSpawning(5000, 10);
+
+    // 添加玩家与道具的碰撞检测
+    this.physics.add.overlap(
+      this.localPlayer,
+      this.itemManager.getItemGroup(),
+      (player, item) => {
+        const itemObj = item as Item;
+        this.localPlayer.pickupItem(itemObj);
+        this.itemManager.removeItem(itemObj.itemId);
+      }
+    );
 
     // 添加调试文字
     const debugText = this.add.text(10, 10, 'WASD 移动 | 鼠标瞄准 | 左键/空格 射击 | R 换弹 | ESC 返回菜单', {

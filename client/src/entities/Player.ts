@@ -3,6 +3,7 @@ import { GAME_CONFIG, CHARACTERS } from '@shared/constants';
 import { CharacterType, PlayerInput, WeaponType } from '@shared/types';
 import { BulletManager } from '../managers/BulletManager';
 import { WeaponManager } from '../managers/WeaponManager';
+import { Item } from './Item';
 
 export class Player extends Phaser.GameObjects.Container {
   public readonly playerId: string;
@@ -19,6 +20,9 @@ export class Player extends Phaser.GameObjects.Container {
   // 武器系统
   private weaponManager: WeaponManager;
   private bulletManager: BulletManager | null = null;
+
+  // 道具技能（从道具拾取的技能）
+  private itemSkill: string | null = null;
 
   constructor(
     scene: Phaser.Scene,
@@ -99,6 +103,27 @@ export class Player extends Phaser.GameObjects.Container {
   // 切换武器
   switchWeapon(weapon: WeaponType) {
     this.weaponManager.switchWeapon(weapon);
+  }
+
+  // 拾取道具
+  pickupItem(item: Item) {
+    if (item.itemType === 'weapon') {
+      // 切换武器
+      this.weaponManager.switchWeapon(item.subType as WeaponType);
+    } else if (item.itemType === 'skill') {
+      // 存储技能道具（后续任务实现具体技能）
+      this.itemSkill = item.subType;
+    }
+  }
+
+  // 获取当前持有的道具技能
+  getItemSkill(): string | null {
+    return this.itemSkill;
+  }
+
+  // 清除道具技能（使用后）
+  clearItemSkill() {
+    this.itemSkill = null;
   }
 
   update(input: PlayerInput, reloading: boolean = false) {
