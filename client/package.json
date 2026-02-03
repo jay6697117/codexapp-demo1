@@ -1,0 +1,20 @@
+{
+  "name": "@pixel-arena/client",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "phaser": "^3.70.0",
+    "colyseus.js": "^0.15.0",
+    "@pixel-arena/shared": "*"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3",
+    "vite": "^5.0.0"
+  }
+}
