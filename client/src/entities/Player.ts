@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
-import { GAME_CONFIG, CHARACTERS } from '@shared/constants';
-import { CharacterType, PlayerInput } from '@shared/types';
+import { GAME_CONFIG, CHARACTERS, WEAPONS } from '@shared/constants';
+import { CharacterType, PlayerInput, WeaponType } from '@shared/types';
+import { BulletManager } from '../managers/BulletManager';
 
 export class Player extends Phaser.GameObjects.Container {
   public readonly playerId: string;
@@ -13,6 +14,11 @@ export class Player extends Phaser.GameObjects.Container {
 
   private characterConfig: typeof CHARACTERS[CharacterType];
   private moveSpeed: number;
+
+  // 射击相关
+  private lastFireTime: number = 0;
+  public currentWeapon: WeaponType = 'pistol';
+  private bulletManager: BulletManager | null = null;
 
   constructor(
     scene: Phaser.Scene,
@@ -55,6 +61,37 @@ export class Player extends Phaser.GameObjects.Container {
     this.bodyPhysics.setOffset(-GAME_CONFIG.PLAYER_SIZE / 2, -GAME_CONFIG.PLAYER_SIZE / 2);
   }
 
+  // 设置 BulletManager
+  setBulletManager(manager: BulletManager) {
+    this.bulletManager = manager;
+  }
+
+  // 检查是否可以射击
+  canFire(): boolean {
+    const now = Date.now();
+    const weaponConfig = WEAPONS[this.currentWeapon];
+    return now - this.lastFireTime >= weaponConfig.fireRate;
+  }
+
+  // 射击
+  fire(angle: number) {
+    if (!this.canFire() || !this.bulletManager) return;
+
+    this.lastFireTime = Date.now();
+
+    // 从玩家前方发射子弹
+    const offsetX = Math.cos(angle) * 20;
+    const offsetY = Math.sin(angle) * 20;
+
+    this.bulletManager.fire(
+      this.x + offsetX,
+      this.y + offsetY,
+      angle,
+      this.playerId,
+      this.currentWeapon
+    );
+  }
+
   update(input: PlayerInput) {
     if (!this.isLocalPlayer) return;
 
@@ -65,6 +102,11 @@ export class Player extends Phaser.GameObjects.Container {
 
     // 朝向（旋转精灵）
     this.sprite.setRotation(input.angle + Math.PI / 2); // +90度因为精灵默认朝上
+
+    // 射击
+    if (input.shooting) {
+      this.fire(input.angle);
+    }
   }
 
   // 用于网络同步：设置目标位置

@@ -2,10 +2,12 @@ import Phaser from 'phaser';
 import { GAME_CONFIG } from '@shared/constants';
 import { Player } from '../entities/Player';
 import { InputManager } from '../input/InputManager';
+import { BulletManager } from '../managers/BulletManager';
 
 export class GameScene extends Phaser.Scene {
   public localPlayer!: Player;
   private inputManager!: InputManager;
+  private bulletManager!: BulletManager;
 
   constructor() {
     super({ key: 'GameScene' });
@@ -38,8 +40,12 @@ export class GameScene extends Phaser.Scene {
     // 初始化输入管理器
     this.inputManager = new InputManager(this);
 
+    // 初始化子弹管理器
+    this.bulletManager = new BulletManager(this);
+    this.localPlayer.setBulletManager(this.bulletManager);
+
     // 添加调试文字
-    const debugText = this.add.text(10, 10, 'WASD 移动 | 鼠标瞄准 | ESC 返回菜单', {
+    const debugText = this.add.text(10, 10, 'WASD 移动 | 鼠标瞄准 | 左键/空格 射击 | ESC 返回菜单', {
       fontSize: '14px',
       color: '#ffffff',
       backgroundColor: '#000000',
