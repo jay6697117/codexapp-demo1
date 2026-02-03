@@ -54,8 +54,8 @@ export interface IRoomState {
   countdown: number;
   elapsedTime: number;
   safeZone: ISafeZone;
-  players: Map<string, IPlayerState>;
-  items: Map<string, IItemState>;
+  players: Record<string, IPlayerState>;
+  items: Record<string, IItemState>;
   alivePlayers: number;
 }
 
