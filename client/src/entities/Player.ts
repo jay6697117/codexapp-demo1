@@ -5,6 +5,8 @@ import { BulletManager } from '../managers/BulletManager';
 import { WeaponManager } from '../managers/WeaponManager';
 import { SkillManager } from '../managers/SkillManager';
 import { SkillEffects } from '../effects/SkillEffects';
+import { DamageEffects } from '../effects/DamageEffects';
+import { HealthBar } from '../ui/HealthBar';
 import { Item } from './Item';
 
 export class Player extends Phaser.GameObjects.Container {
@@ -33,6 +35,15 @@ export class Player extends Phaser.GameObjects.Container {
 
   // 道具技能（从道具拾取的技能）
   private itemSkill: string | null = null;
+
+  // 血量系统
+  private hp: number;
+  private maxHp: number;
+  private healthBar: HealthBar;
+  private damageEffects: DamageEffects;
+  private isAlive: boolean = true;
+  private kills: number = 0;
+  private damageDealt: number = 0;
 
   constructor(
     scene: Phaser.Scene,
@@ -80,6 +91,15 @@ export class Player extends Phaser.GameObjects.Container {
     // 初始化技能系统
     this.skillManager = new SkillManager(scene, characterType);
     this.skillEffects = new SkillEffects(scene);
+
+    // 初始化血量系统
+    this.maxHp = this.characterConfig.hp;
+    this.hp = this.maxHp;
+    this.damageEffects = new DamageEffects(scene);
+
+    // 创建血条（在名字下方）
+    this.healthBar = new HealthBar(scene, 0, -32, 40, 5, this.maxHp);
+    this.add(this.healthBar);
   }
 
   // 设置 BulletManager
@@ -211,11 +231,10 @@ export class Player extends Phaser.GameObjects.Container {
     this.healAuraGraphics = this.skillEffects.createHealAuraEffect(this);
 
     // 每秒回复 10 HP，持续 5 秒
-    const healInterval = this.scene.time.addEvent({
+    this.scene.time.addEvent({
       delay: 1000,
       callback: () => {
-        // 回血逻辑（后续 Task 2.5 实现 HP 系统）
-        console.log('Heal +10 HP');
+        this.heal(10);
       },
       repeat: 4,
     });
@@ -246,6 +265,81 @@ export class Player extends Phaser.GameObjects.Container {
   // 是否无敌状态
   isPlayerInvincible(): boolean {
     return this.isInvincible;
+  }
+
+  // 受到伤害
+  takeDamage(damage: number, attackerId?: string): boolean {
+    if (!this.isAlive || this.isInvincible) return false;
+
+    this.hp = Math.max(0, this.hp - damage);
+    this.healthBar.setHp(this.hp);
+
+    // 伤害效果
+    this.damageEffects.showDamageNumber(this.x, this.y, damage);
+    this.damageEffects.playHitFlash(this);
+
+    if (this.hp <= 0) {
+      this.die();
+      return true; // 已死亡
+    }
+    return false;
+  }
+
+  // 治疗
+  heal(amount: number) {
+    if (!this.isAlive) return;
+
+    const actualHeal = Math.min(amount, this.maxHp - this.hp);
+    if (actualHeal > 0) {
+      this.hp += actualHeal;
+      this.healthBar.setHp(this.hp);
+      this.damageEffects.showHealNumber(this.x, this.y, actualHeal);
+    }
+  }
+
+  // 死亡
+  private die() {
+    this.isAlive = false;
+    this.damageEffects.playDeathEffect(this.x, this.y);
+
+    // 隐藏玩家
+    this.setVisible(false);
+    this.bodyPhysics.enable = false;
+  }
+
+  // 获取血量
+  getHp(): number {
+    return this.hp;
+  }
+
+  // 获取最大血量
+  getMaxHp(): number {
+    return this.maxHp;
+  }
+
+  // 获取存活状态
+  getIsAlive(): boolean {
+    return this.isAlive;
+  }
+
+  // 获取击杀数
+  getKills(): number {
+    return this.kills;
+  }
+
+  // 增加击杀数
+  addKill() {
+    this.kills++;
+  }
+
+  // 增加造成的伤害
+  addDamageDealt(amount: number) {
+    this.damageDealt += amount;
+  }
+
+  // 获取造成的伤害
+  getDamageDealt(): number {
+    return this.damageDealt;
   }
 
   update(input: PlayerInput, reloading: boolean = false) {
@@ -300,6 +394,7 @@ export class Player extends Phaser.GameObjects.Container {
   destroy(fromScene?: boolean) {
     this.sprite.destroy();
     this.nameText.destroy();
+    this.healthBar.destroy();
     super.destroy(fromScene);
   }
 }

@@ -22,6 +22,9 @@ export class GameScene extends Phaser.Scene {
   private skillCooldownBar!: Phaser.GameObjects.Graphics;
   private skillReadyText!: Phaser.GameObjects.Text;
 
+  // HP HUD 元素
+  private hpText!: Phaser.GameObjects.Text;
+
   constructor() {
     super({ key: 'GameScene' });
   }
@@ -88,6 +91,9 @@ export class GameScene extends Phaser.Scene {
     // 创建技能 HUD
     this.createSkillHUD();
 
+    // 创建 HP HUD
+    this.createHpHUD();
+
     // ESC 返回菜单
     this.input.keyboard?.on('keydown-ESC', () => {
       this.scene.start('MenuScene');
@@ -109,6 +115,9 @@ export class GameScene extends Phaser.Scene {
 
     // 更新技能 HUD
     this.updateSkillHUD();
+
+    // 更新 HP HUD
+    this.updateHpHUD();
   }
 
   private createMap() {
@@ -361,6 +370,33 @@ export class GameScene extends Phaser.Scene {
       const remaining = Math.ceil(skillManager.getCooldownRemaining() / 1000);
       this.skillReadyText.setText(`冷却中 ${remaining}s`);
       this.skillReadyText.setColor('#ff6600');
+    }
+  }
+
+  private createHpHUD() {
+    this.hpText = this.add.text(10, 50, '', {
+      fontSize: '16px',
+      color: '#ffffff',
+      backgroundColor: '#000000aa',
+      padding: { x: 8, y: 4 },
+    });
+    this.hpText.setScrollFactor(0);
+    this.hpText.setDepth(1000);
+  }
+
+  private updateHpHUD() {
+    const hp = this.localPlayer.getHp();
+    const maxHp = this.localPlayer.getMaxHp();
+    this.hpText.setText(`HP: ${hp}/${maxHp}`);
+
+    // 根据血量百分比变色
+    const percent = hp / maxHp;
+    if (percent > 0.6) {
+      this.hpText.setColor('#00ff00');
+    } else if (percent > 0.3) {
+      this.hpText.setColor('#ffff00');
+    } else {
+      this.hpText.setColor('#ff0000');
     }
   }
 }
