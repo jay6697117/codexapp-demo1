@@ -2,10 +2,12 @@ import Phaser from 'phaser';
 import { GAME_CONFIG } from '@shared/constants';
 import { Player } from '../entities/Player';
 import { Item } from '../entities/Item';
+import { RemotePlayer } from '../entities/RemotePlayer';
 import { InputManager } from '../input/InputManager';
 import { BulletManager } from '../managers/BulletManager';
 import { ItemManager } from '../managers/ItemManager';
 import { SafeZoneManager, ZoneState } from '../managers/SafeZoneManager';
+import { networkManager } from '../network';
 
 export class GameScene extends Phaser.Scene {
   public localPlayer!: Player;
@@ -13,6 +15,10 @@ export class GameScene extends Phaser.Scene {
   private bulletManager!: BulletManager;
   private itemManager!: ItemManager;
   private safeZoneManager!: SafeZoneManager;
+
+  // 多人模式相关
+  private remotePlayers: Map<string, RemotePlayer> = new Map();
+  private isMultiplayer: boolean = false;
 
   // HUD 元素
   private weaponText!: Phaser.GameObjects.Text;
@@ -117,7 +123,93 @@ export class GameScene extends Phaser.Scene {
 
     // ESC 返回菜单
     this.input.keyboard?.on('keydown-ESC', () => {
+      if (this.isMultiplayer) {
+        networkManager.leave();
+      }
       this.scene.start('MenuScene');
+    });
+
+    // 检查是否多人模式（通过 scene data 传递）
+    this.isMultiplayer = this.scene.settings.data?.multiplayer || false;
+
+    if (this.isMultiplayer) {
+      this.setupNetworkListeners();
+    }
+  }
+
+  private setupNetworkListeners() {
+    const room = networkManager.getRoom();
+    if (!room) return;
+
+    // 监听玩家加入
+    networkManager.on('playerJoin', ({ sessionId, player }: { sessionId: string; player: any }) => {
+      if (sessionId === networkManager.getSessionId()) return;
+      this.addRemotePlayer(sessionId, player);
+    });
+
+    // 监听玩家离开
+    networkManager.on('playerLeave', ({ sessionId }: { sessionId: string }) => {
+      this.removeRemotePlayer(sessionId);
+    });
+
+    // 监听状态变化
+    networkManager.on('stateChange', (state: any) => {
+      this.syncPlayersFromState(state);
+    });
+
+    // 监听子弹
+    networkManager.on('bullet', (data: any) => {
+      if (data.ownerId === networkManager.getSessionId()) return;
+      this.bulletManager.spawnBullet(data.x, data.y, data.angle, data.weapon);
+    });
+
+    // 监听技能
+    networkManager.on('skill', (data: any) => {
+      if (data.playerId === networkManager.getSessionId()) return;
+      // 播放远程玩家技能效果（可扩展）
+      console.log('Remote player used skill:', data);
+    });
+
+    // 初始化已存在的玩家
+    room.state.players.forEach((player: any, sessionId: string) => {
+      if (sessionId !== networkManager.getSessionId()) {
+        this.addRemotePlayer(sessionId, player);
+      }
+    });
+  }
+
+  private addRemotePlayer(sessionId: string, state: any) {
+    if (this.remotePlayers.has(sessionId)) return;
+
+    const remotePlayer = new RemotePlayer(this, sessionId, state);
+    this.remotePlayers.set(sessionId, remotePlayer);
+    console.log('Added remote player:', sessionId, state.name);
+  }
+
+  private removeRemotePlayer(sessionId: string) {
+    const remotePlayer = this.remotePlayers.get(sessionId);
+    if (remotePlayer) {
+      remotePlayer.destroy();
+      this.remotePlayers.delete(sessionId);
+      console.log('Removed remote player:', sessionId);
+    }
+  }
+
+  private syncPlayersFromState(state: any) {
+    state.players.forEach((playerState: any, sessionId: string) => {
+      if (sessionId === networkManager.getSessionId()) {
+        // 可选：同步本地玩家状态（服务器权威）
+        // this.localPlayer.syncFromServer(playerState);
+        return;
+      }
+
+      const remotePlayer = this.remotePlayers.get(sessionId);
+      if (remotePlayer) {
+        remotePlayer.updateFromState(playerState);
+      } else {
+        // 如果远程玩家不存在，添加它
+        this.addRemotePlayer(sessionId, playerState);
+      }
     });
   }
 
@@ -143,6 +235,21 @@ export class GameScene extends Phaser.Scene {
     // 更新缩圈系统
     const zoneState = this.safeZoneManager.update();
     this.updateZoneHUD(zoneState);
+
+    // 多人模式：更新远程玩家并发送输入
+    if (this.isMultiplayer) {
+      // 更新远程玩家
+      this.remotePlayers.forEach(player => player.update(delta));
+
+      // 发送本地输入到服务器
+      networkManager.sendInput({
+        dx: input.dx,
+        dy: input.dy,
+        angle: input.angle,
+        shooting: input.shooting,
+        skill: input.skill,
+      });
+    }
   }
 
   private createMap() {
