@@ -3,6 +3,7 @@ import { WebSocketTransport } from '@colyseus/ws-transport';
 import express from 'express';
 import { createServer } from 'http';
 import { serverConfig } from './config.js';
+import { GameRoom } from './rooms/index.js';
 
 const { Server } = Colyseus;
 
@@ -28,7 +29,11 @@ const gameServer = new Server({
   }),
 });
 
-// 暂时不注册房间，后续任务会添加
+// 注册游戏房间
+gameServer.define('game', GameRoom)
+  .filterBy(['roomId']);
+
+console.log('📦 GameRoom registered');
 
 gameServer.listen(serverConfig.port).then(() => {
   console.log(`🎮 Pixel Arena Server`);
