@@ -5,12 +5,14 @@ import { Item } from '../entities/Item';
 import { InputManager } from '../input/InputManager';
 import { BulletManager } from '../managers/BulletManager';
 import { ItemManager } from '../managers/ItemManager';
+import { SafeZoneManager, ZoneState } from '../managers/SafeZoneManager';
 
 export class GameScene extends Phaser.Scene {
   public localPlayer!: Player;
   private inputManager!: InputManager;
   private bulletManager!: BulletManager;
   private itemManager!: ItemManager;
+  private safeZoneManager!: SafeZoneManager;
 
   // HUD 元素
   private weaponText!: Phaser.GameObjects.Text;
@@ -24,6 +26,10 @@ export class GameScene extends Phaser.Scene {
 
   // HP HUD 元素
   private hpText!: Phaser.GameObjects.Text;
+
+  // 缩圈 HUD 元素
+  private zoneHudText!: Phaser.GameObjects.Text;
+  private zoneDamageTimer!: Phaser.Time.TimerEvent;
 
   constructor() {
     super({ key: 'GameScene' });
@@ -94,6 +100,21 @@ export class GameScene extends Phaser.Scene {
     // 创建 HP HUD
     this.createHpHUD();
 
+    // 初始化缩圈管理器
+    this.safeZoneManager = new SafeZoneManager(this);
+    this.safeZoneManager.start();
+
+    // 创建缩圈 HUD
+    this.createZoneHUD();
+
+    // 每秒检查毒圈伤害
+    this.zoneDamageTimer = this.time.addEvent({
+      delay: 1000,
+      callback: this.applyZoneDamage,
+      callbackScope: this,
+      loop: true,
+    });
+
     // ESC 返回菜单
     this.input.keyboard?.on('keydown-ESC', () => {
       this.scene.start('MenuScene');
@@ -118,6 +139,10 @@ export class GameScene extends Phaser.Scene {
 
     // 更新 HP HUD
     this.updateHpHUD();
+
+    // 更新缩圈系统
+    const zoneState = this.safeZoneManager.update();
+    this.updateZoneHUD(zoneState);
   }
 
   private createMap() {
@@ -397,6 +422,52 @@ export class GameScene extends Phaser.Scene {
       this.hpText.setColor('#ffff00');
     } else {
       this.hpText.setColor('#ff0000');
+    }
+  }
+
+  private createZoneHUD() {
+    const screenWidth = this.cameras.main.width;
+
+    this.zoneHudText = this.add.text(screenWidth - 10, 10, '', {
+      fontSize: '14px',
+      color: '#ffffff',
+      backgroundColor: '#000000aa',
+      padding: { x: 8, y: 4 },
+    });
+    this.zoneHudText.setOrigin(1, 0);
+    this.zoneHudText.setScrollFactor(0);
+    this.zoneHudText.setDepth(1000);
+  }
+
+  private updateZoneHUD(state: ZoneState) {
+    const phaseText = `阶段 ${state.phase + 1}/5`;
+    const damageText = state.damage > 0 ? `伤害: ${state.damage}/秒` : '安全';
+    const timeText = state.timeToNextPhase > 0
+      ? `下次缩圈: ${Math.ceil(state.timeToNextPhase / 1000)}秒`
+      : '最终阶段';
+    const shrinkText = state.isShrinking ? ' [缩圈中]' : '';
+
+    this.zoneHudText.setText(`${phaseText}\n${damageText}\n${timeText}${shrinkText}`);
+
+    // 根据状态变色
+    if (state.isShrinking) {
+      this.zoneHudText.setColor('#ff6600');
+    } else if (state.damage > 0) {
+      this.zoneHudText.setColor('#ffaa00');
+    } else {
+      this.zoneHudText.setColor('#ffffff');
+    }
+  }
+
+  private applyZoneDamage() {
+    if (!this.localPlayer.getIsAlive()) return;
+
+    const pos = this.localPlayer.getPosition();
+    if (!this.safeZoneManager.isInsideSafeZone(pos.x, pos.y)) {
+      const damage = this.safeZoneManager.getDamage();
+      if (damage > 0) {
+        this.localPlayer.takeDamage(damage);
+      }
     }
   }
 }
