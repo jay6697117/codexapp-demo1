@@ -17,6 +17,11 @@ export class GameScene extends Phaser.Scene {
   private ammoText!: Phaser.GameObjects.Text;
   private reloadText!: Phaser.GameObjects.Text;
 
+  // 技能 HUD 元素
+  private skillNameText!: Phaser.GameObjects.Text;
+  private skillCooldownBar!: Phaser.GameObjects.Graphics;
+  private skillReadyText!: Phaser.GameObjects.Text;
+
   constructor() {
     super({ key: 'GameScene' });
   }
@@ -68,7 +73,7 @@ export class GameScene extends Phaser.Scene {
     );
 
     // 添加调试文字
-    const debugText = this.add.text(10, 10, 'WASD 移动 | 鼠标瞄准 | 左键/空格 射击 | R 换弹 | ESC 返回菜单', {
+    const debugText = this.add.text(10, 10, 'WASD 移动 | 鼠标瞄准 | 左键/空格 射击 | R 换弹 | Q 技能 | ESC 返回菜单', {
       fontSize: '14px',
       color: '#ffffff',
       backgroundColor: '#000000',
@@ -79,6 +84,9 @@ export class GameScene extends Phaser.Scene {
 
     // 创建弹药 HUD
     this.createAmmoHUD();
+
+    // 创建技能 HUD
+    this.createSkillHUD();
 
     // ESC 返回菜单
     this.input.keyboard?.on('keydown-ESC', () => {
@@ -98,6 +106,9 @@ export class GameScene extends Phaser.Scene {
 
     // 更新弹药 HUD
     this.updateAmmoHUD();
+
+    // 更新技能 HUD
+    this.updateSkillHUD();
   }
 
   private createMap() {
@@ -272,6 +283,84 @@ export class GameScene extends Phaser.Scene {
       this.reloadText.setVisible(true);
     } else {
       this.reloadText.setVisible(false);
+    }
+  }
+
+  private createSkillHUD() {
+    const screenHeight = this.cameras.main.height;
+
+    // 技能名称
+    this.skillNameText = this.add.text(20, screenHeight - 80, '', {
+      fontSize: '16px',
+      color: '#ffffff',
+      fontStyle: 'bold',
+    });
+    this.skillNameText.setScrollFactor(0);
+    this.skillNameText.setDepth(1000);
+
+    // 技能冷却进度条背景和前景
+    this.skillCooldownBar = this.add.graphics();
+    this.skillCooldownBar.setScrollFactor(0);
+    this.skillCooldownBar.setDepth(1000);
+
+    // 技能就绪提示
+    this.skillReadyText = this.add.text(20, screenHeight - 25, '', {
+      fontSize: '14px',
+      color: '#00ff00',
+    });
+    this.skillReadyText.setScrollFactor(0);
+    this.skillReadyText.setDepth(1000);
+  }
+
+  private updateSkillHUD() {
+    const skillManager = this.localPlayer.getSkillManager();
+    const screenHeight = this.cameras.main.height;
+
+    // 更新技能名称
+    const skillName = skillManager.getSkillName();
+    this.skillNameText.setText(`[Q] ${skillName}`);
+
+    // 更新冷却进度条
+    const cooldownPercent = skillManager.getCooldownPercent();
+    const barWidth = 100;
+    const barHeight = 12;
+    const barX = 20;
+    const barY = screenHeight - 55;
+
+    this.skillCooldownBar.clear();
+
+    // 背景条（灰色）
+    this.skillCooldownBar.fillStyle(0x333333, 1);
+    this.skillCooldownBar.fillRect(barX, barY, barWidth, barHeight);
+
+    // 进度条（根据状态变色）
+    if (cooldownPercent >= 1) {
+      // 就绪状态：绿色
+      this.skillCooldownBar.fillStyle(0x00ff00, 1);
+    } else if (skillManager.isSkillActive()) {
+      // 激活中：蓝色
+      this.skillCooldownBar.fillStyle(0x0088ff, 1);
+    } else {
+      // 冷却中：橙色
+      this.skillCooldownBar.fillStyle(0xff6600, 1);
+    }
+    this.skillCooldownBar.fillRect(barX, barY, barWidth * cooldownPercent, barHeight);
+
+    // 边框
+    this.skillCooldownBar.lineStyle(2, 0xffffff, 0.8);
+    this.skillCooldownBar.strokeRect(barX, barY, barWidth, barHeight);
+
+    // 更新就绪提示
+    if (skillManager.canUseSkill()) {
+      this.skillReadyText.setText('就绪');
+      this.skillReadyText.setColor('#00ff00');
+    } else if (skillManager.isSkillActive()) {
+      this.skillReadyText.setText('激活中');
+      this.skillReadyText.setColor('#0088ff');
+    } else {
+      const remaining = Math.ceil(skillManager.getCooldownRemaining() / 1000);
+      this.skillReadyText.setText(`冷却中 ${remaining}s`);
+      this.skillReadyText.setColor('#ff6600');
     }
   }
 }
