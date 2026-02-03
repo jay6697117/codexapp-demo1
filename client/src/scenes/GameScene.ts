@@ -1,8 +1,11 @@
 import Phaser from 'phaser';
 import { GAME_CONFIG } from '@shared/constants';
+import { Player } from '../entities/Player';
+import { InputManager } from '../input/InputManager';
 
 export class GameScene extends Phaser.Scene {
-  private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
+  public localPlayer!: Player;
+  private inputManager!: InputManager;
 
   constructor() {
     super({ key: 'GameScene' });
@@ -18,10 +21,22 @@ export class GameScene extends Phaser.Scene {
     // 设置相机边界
     this.cameras.main.setBounds(0, 0, GAME_CONFIG.MAP_WIDTH, GAME_CONFIG.MAP_HEIGHT);
 
-    // 启用键盘输入（临时测试用，后续会用 WASD）
-    if (this.input.keyboard) {
-      this.cursors = this.input.keyboard.createCursorKeys();
-    }
+    // 创建本地玩家
+    this.localPlayer = new Player(
+      this,
+      GAME_CONFIG.MAP_WIDTH / 2,
+      GAME_CONFIG.MAP_HEIGHT / 2,
+      'local-player',
+      'Player',
+      'assault',
+      true
+    );
+
+    // 设置相机跟随玩家
+    this.cameras.main.startFollow(this.localPlayer, true, 0.1, 0.1);
+
+    // 初始化输入管理器
+    this.inputManager = new InputManager(this);
 
     // 添加调试文字
     const debugText = this.add.text(10, 10, 'WASD 移动 | 鼠标瞄准 | ESC 返回菜单', {
@@ -37,27 +52,16 @@ export class GameScene extends Phaser.Scene {
     this.input.keyboard?.on('keydown-ESC', () => {
       this.scene.start('MenuScene');
     });
-
-    // 将相机移动到地图中心（临时，后续会跟随玩家）
-    this.cameras.main.centerOn(GAME_CONFIG.MAP_WIDTH / 2, GAME_CONFIG.MAP_HEIGHT / 2);
   }
 
   update(time: number, delta: number) {
-    // 使用方向键移动相机（临时测试用）
-    const cameraSpeed = 10;
+    // 更新玩家位置到输入管理器
+    const pos = this.localPlayer.getPosition();
+    this.inputManager.setPlayerPosition(pos.x, pos.y);
 
-    if (this.cursors?.left.isDown) {
-      this.cameras.main.scrollX -= cameraSpeed;
-    }
-    if (this.cursors?.right.isDown) {
-      this.cameras.main.scrollX += cameraSpeed;
-    }
-    if (this.cursors?.up.isDown) {
-      this.cameras.main.scrollY -= cameraSpeed;
-    }
-    if (this.cursors?.down.isDown) {
-      this.cameras.main.scrollY += cameraSpeed;
-    }
+    // 获取输入并更新玩家
+    const input = this.inputManager.getInput();
+    this.localPlayer.update(input);
   }
 
   private createMap() {
