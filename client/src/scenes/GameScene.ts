@@ -9,6 +9,11 @@ export class GameScene extends Phaser.Scene {
   private inputManager!: InputManager;
   private bulletManager!: BulletManager;
 
+  // HUD 元素
+  private weaponText!: Phaser.GameObjects.Text;
+  private ammoText!: Phaser.GameObjects.Text;
+  private reloadText!: Phaser.GameObjects.Text;
+
   constructor() {
     super({ key: 'GameScene' });
   }
@@ -45,7 +50,7 @@ export class GameScene extends Phaser.Scene {
     this.localPlayer.setBulletManager(this.bulletManager);
 
     // 添加调试文字
-    const debugText = this.add.text(10, 10, 'WASD 移动 | 鼠标瞄准 | 左键/空格 射击 | ESC 返回菜单', {
+    const debugText = this.add.text(10, 10, 'WASD 移动 | 鼠标瞄准 | 左键/空格 射击 | R 换弹 | ESC 返回菜单', {
       fontSize: '14px',
       color: '#ffffff',
       backgroundColor: '#000000',
@@ -53,6 +58,9 @@ export class GameScene extends Phaser.Scene {
     });
     debugText.setScrollFactor(0);
     debugText.setDepth(1000);
+
+    // 创建弹药 HUD
+    this.createAmmoHUD();
 
     // ESC 返回菜单
     this.input.keyboard?.on('keydown-ESC', () => {
@@ -67,7 +75,11 @@ export class GameScene extends Phaser.Scene {
 
     // 获取输入并更新玩家
     const input = this.inputManager.getInput();
-    this.localPlayer.update(input);
+    const reloading = this.inputManager.isReloading();
+    this.localPlayer.update(input, reloading);
+
+    // 更新弹药 HUD
+    this.updateAmmoHUD();
   }
 
   private createMap() {
@@ -178,6 +190,70 @@ export class GameScene extends Phaser.Scene {
           'tile_lava'
         );
       }
+    }
+  }
+
+  private createAmmoHUD() {
+    const screenWidth = this.cameras.main.width;
+    const screenHeight = this.cameras.main.height;
+
+    // 武器名称
+    this.weaponText = this.add.text(screenWidth - 150, screenHeight - 80, '', {
+      fontSize: '16px',
+      color: '#ffffff',
+      fontStyle: 'bold',
+    });
+    this.weaponText.setScrollFactor(0);
+    this.weaponText.setDepth(1000);
+
+    // 弹药数量
+    this.ammoText = this.add.text(screenWidth - 150, screenHeight - 55, '', {
+      fontSize: '24px',
+      color: '#ffff00',
+      fontStyle: 'bold',
+    });
+    this.ammoText.setScrollFactor(0);
+    this.ammoText.setDepth(1000);
+
+    // 换弹提示
+    this.reloadText = this.add.text(screenWidth - 150, screenHeight - 25, '', {
+      fontSize: '14px',
+      color: '#ff6600',
+    });
+    this.reloadText.setScrollFactor(0);
+    this.reloadText.setDepth(1000);
+  }
+
+  private updateAmmoHUD() {
+    const weaponManager = this.localPlayer.getWeaponManager();
+
+    // 更新武器名称
+    this.weaponText.setText(weaponManager.getWeaponName());
+
+    // 更新弹药数量
+    const ammo = weaponManager.getAmmo();
+    const maxAmmo = weaponManager.getMaxAmmo();
+    this.ammoText.setText(`${ammo} / ${maxAmmo}`);
+
+    // 弹药颜色：低弹药时变红
+    if (ammo <= Math.ceil(maxAmmo * 0.25)) {
+      this.ammoText.setColor('#ff0000');
+    } else if (ammo <= Math.ceil(maxAmmo * 0.5)) {
+      this.ammoText.setColor('#ffaa00');
+    } else {
+      this.ammoText.setColor('#ffff00');
+    }
+
+    // 更新换弹提示
+    if (weaponManager.isCurrentlyReloading()) {
+      const progress = Math.floor(weaponManager.getReloadProgress() * 100);
+      this.reloadText.setText(`换弹中... ${progress}%`);
+      this.reloadText.setVisible(true);
+    } else if (ammo === 0) {
+      this.reloadText.setText('按 R 换弹');
+      this.reloadText.setVisible(true);
+    } else {
+      this.reloadText.setVisible(false);
     }
   }
 }

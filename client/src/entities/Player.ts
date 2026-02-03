@@ -1,7 +1,8 @@
 import Phaser from 'phaser';
-import { GAME_CONFIG, CHARACTERS, WEAPONS } from '@shared/constants';
+import { GAME_CONFIG, CHARACTERS } from '@shared/constants';
 import { CharacterType, PlayerInput, WeaponType } from '@shared/types';
 import { BulletManager } from '../managers/BulletManager';
+import { WeaponManager } from '../managers/WeaponManager';
 
 export class Player extends Phaser.GameObjects.Container {
   public readonly playerId: string;
@@ -15,9 +16,8 @@ export class Player extends Phaser.GameObjects.Container {
   private characterConfig: typeof CHARACTERS[CharacterType];
   private moveSpeed: number;
 
-  // 射击相关
-  private lastFireTime: number = 0;
-  public currentWeapon: WeaponType = 'pistol';
+  // 武器系统
+  private weaponManager: WeaponManager;
   private bulletManager: BulletManager | null = null;
 
   constructor(
@@ -59,6 +59,9 @@ export class Player extends Phaser.GameObjects.Container {
     this.bodyPhysics.setCollideWorldBounds(true);
     this.bodyPhysics.setSize(GAME_CONFIG.PLAYER_SIZE, GAME_CONFIG.PLAYER_SIZE);
     this.bodyPhysics.setOffset(-GAME_CONFIG.PLAYER_SIZE / 2, -GAME_CONFIG.PLAYER_SIZE / 2);
+
+    // 初始化武器管理器
+    this.weaponManager = new WeaponManager('pistol');
   }
 
   // 设置 BulletManager
@@ -66,34 +69,43 @@ export class Player extends Phaser.GameObjects.Container {
     this.bulletManager = manager;
   }
 
-  // 检查是否可以射击
-  canFire(): boolean {
-    const now = Date.now();
-    const weaponConfig = WEAPONS[this.currentWeapon];
-    return now - this.lastFireTime >= weaponConfig.fireRate;
+  // 获取武器管理器
+  getWeaponManager(): WeaponManager {
+    return this.weaponManager;
   }
 
   // 射击
   fire(angle: number) {
-    if (!this.canFire() || !this.bulletManager) return;
-
-    this.lastFireTime = Date.now();
+    if (!this.bulletManager) return;
 
     // 从玩家前方发射子弹
     const offsetX = Math.cos(angle) * 20;
     const offsetY = Math.sin(angle) * 20;
 
-    this.bulletManager.fire(
+    this.weaponManager.fire(
       this.x + offsetX,
       this.y + offsetY,
       angle,
       this.playerId,
-      this.currentWeapon
+      this.bulletManager
     );
   }
 
-  update(input: PlayerInput) {
+  // 换弹
+  reload() {
+    this.weaponManager.reload();
+  }
+
+  // 切换武器
+  switchWeapon(weapon: WeaponType) {
+    this.weaponManager.switchWeapon(weapon);
+  }
+
+  update(input: PlayerInput, reloading: boolean = false) {
     if (!this.isLocalPlayer) return;
+
+    // 更新武器管理器（处理换弹计时）
+    this.weaponManager.update();
 
     // 移动
     const velocityX = input.dx * this.moveSpeed;
@@ -102,6 +114,11 @@ export class Player extends Phaser.GameObjects.Container {
 
     // 朝向（旋转精灵）
     this.sprite.setRotation(input.angle + Math.PI / 2); // +90度因为精灵默认朝上
+
+    // 换弹
+    if (reloading) {
+      this.reload();
+    }
 
     // 射击
     if (input.shooting) {

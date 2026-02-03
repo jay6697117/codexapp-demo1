@@ -10,6 +10,7 @@ export class InputManager {
     D: Phaser.Input.Keyboard.Key;
     Q: Phaser.Input.Keyboard.Key;
     E: Phaser.Input.Keyboard.Key;
+    R: Phaser.Input.Keyboard.Key;
     SPACE: Phaser.Input.Keyboard.Key;
   } | null = null;
 
@@ -26,6 +27,7 @@ export class InputManager {
         D: scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D),
         Q: scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q),
         E: scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E),
+        R: scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.R),
         SPACE: scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE),
       };
     }
@@ -78,5 +80,10 @@ export class InputManager {
       shooting,
       skill,
     };
+  }
+
+  // 检查是否按下换弹键
+  isReloading(): boolean {
+    return this.keys?.R.isDown ?? false;
   }
 }
