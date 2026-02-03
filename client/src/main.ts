@@ -1,31 +1,11 @@
 import Phaser from 'phaser';
 import { phaserConfig } from './config';
-
-// 暂时用空场景测试
-class TestScene extends Phaser.Scene {
-  constructor() {
-    super({ key: 'TestScene' });
-  }
-
-  create() {
-    const text = this.add.text(400, 300, 'Pixel Arena\n像素竞技场', {
-      fontSize: '48px',
-      color: '#ffffff',
-      align: 'center',
-    });
-    text.setOrigin(0.5);
-
-    const subText = this.add.text(400, 400, '游戏加载中...', {
-      fontSize: '24px',
-      color: '#888888',
-    });
-    subText.setOrigin(0.5);
-  }
-}
+import { BootScene } from './scenes/BootScene';
+import { MenuScene } from './scenes/MenuScene';
 
 const config: Phaser.Types.Core.GameConfig = {
   ...phaserConfig,
-  scene: [TestScene],
+  scene: [BootScene, MenuScene],
 };
 
 // 启动游戏
