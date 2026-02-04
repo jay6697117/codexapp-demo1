@@ -9,6 +9,7 @@ import { ItemManager } from '../managers/ItemManager';
 import { SafeZoneManager, ZoneState } from '../managers/SafeZoneManager';
 import { KillFeed } from '../ui/KillFeed';
 import { GameOverScreen, PlayerResult } from '../ui/GameOverScreen';
+import { Leaderboard, LeaderboardEntry } from '../ui/Leaderboard';
 import { networkManager } from '../network';
 
 export class GameScene extends Phaser.Scene {
@@ -19,6 +20,7 @@ export class GameScene extends Phaser.Scene {
   private safeZoneManager!: SafeZoneManager;
   private killFeed!: KillFeed;
   private gameOverScreen!: GameOverScreen;
+  private leaderboard!: Leaderboard;
 
   // 多人模式相关
   private remotePlayers: Map<string, RemotePlayer> = new Map();
@@ -123,6 +125,9 @@ export class GameScene extends Phaser.Scene {
     // 初始化游戏结束界面
     this.gameOverScreen = new GameOverScreen(this);
 
+    // 初始化排行榜
+    this.leaderboard = new Leaderboard(this);
+
     // 每秒检查毒圈伤害
     this.zoneDamageTimer = this.time.addEvent({
       delay: 1000,
@@ -165,6 +170,7 @@ export class GameScene extends Phaser.Scene {
     // 监听状态变化
     networkManager.on('stateChange', (state: any) => {
       this.syncPlayersFromState(state);
+      this.updateLeaderboard(state);
     });
 
     // 监听子弹
@@ -262,6 +268,27 @@ export class GameScene extends Phaser.Scene {
         this.addRemotePlayer(sessionId, playerState);
       }
     });
+  }
+
+  private updateLeaderboard(state: any) {
+    const myId = networkManager.getSessionId();
+    const entries: LeaderboardEntry[] = [];
+    let alivePlayers = 0;
+
+    state.players.forEach((player: any, sessionId: string) => {
+      if (player.isAlive) {
+        alivePlayers++;
+      }
+      entries.push({
+        id: sessionId,
+        name: player.name,
+        kills: player.kills || 0,
+        isAlive: player.isAlive,
+        isLocal: sessionId === myId,
+      });
+    });
+
+    this.leaderboard.update(entries, alivePlayers, state.players.size);
   }
 
   update(time: number, delta: number) {
