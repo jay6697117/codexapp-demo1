@@ -1,8 +1,10 @@
 import Phaser from 'phaser';
 import { networkManager } from '../network';
+import { RoomListUI, RoomInfo } from '../ui/RoomListUI';
 
 export class MenuScene extends Phaser.Scene {
   private connectingText?: Phaser.GameObjects.Text;
+  private roomListUI!: RoomListUI;
 
   constructor() {
     super({ key: 'MenuScene' });
@@ -72,8 +74,31 @@ export class MenuScene extends Phaser.Scene {
       this.startMultiplayerGame();
     });
 
+    // 房间列表按钮
+    const roomListButton = this.add.text(width / 2, height / 2 + 120, '[ 房间列表 ]', {
+      fontSize: '32px',
+      color: '#ffffff',
+      padding: { x: 20, y: 10 },
+    });
+    roomListButton.setOrigin(0.5);
+    roomListButton.setInteractive({ useHandCursor: true });
+
+    roomListButton.on('pointerover', () => {
+      roomListButton.setColor('#ff9900');
+      roomListButton.setScale(1.1);
+    });
+
+    roomListButton.on('pointerout', () => {
+      roomListButton.setColor('#ffffff');
+      roomListButton.setScale(1);
+    });
+
+    roomListButton.on('pointerdown', () => {
+      this.showRoomList();
+    });
+
     // 连接中提示（初始隐藏）
-    this.connectingText = this.add.text(width / 2, height / 2 + 120, '连接服务器中...', {
+    this.connectingText = this.add.text(width / 2, height / 2 + 200, '连接服务器中...', {
       fontSize: '18px',
       color: '#ffaa00',
     });
@@ -93,6 +118,135 @@ export class MenuScene extends Phaser.Scene {
       fontSize: '14px',
       color: '#444444',
     });
+
+    // 初始化房间列表 UI
+    this.roomListUI = new RoomListUI(this);
+    this.roomListUI.setCallbacks({
+      onJoinRoom: (roomId) => this.joinRoom(roomId),
+      onCreateRoom: () => this.createRoom(),
+      onQuickMatch: () => this.quickMatch(),
+      onRefresh: () => this.refreshRooms(),
+    });
+  }
+
+  private showRoomList() {
+    this.roomListUI.show();
+    this.refreshRooms();
+  }
+
+  private async refreshRooms() {
+    // 模拟获取房间列表（实际应从服务器获取）
+    // TODO: 替换为实际的 networkManager.getRoomList() 调用
+    const mockRooms: RoomInfo[] = [
+      { roomId: '1', name: '新手房间', playerCount: 3, maxPlayers: 8, status: 'waiting', mapName: '森林' },
+      { roomId: '2', name: '高手对决', playerCount: 6, maxPlayers: 8, status: 'playing', mapName: '沙漠' },
+      { roomId: '3', name: '休闲娱乐', playerCount: 2, maxPlayers: 4, status: 'waiting', mapName: '雪地' },
+    ];
+    this.roomListUI.updateRooms(mockRooms);
+  }
+
+  private async joinRoom(roomId: string) {
+    if (!this.connectingText) return;
+
+    this.roomListUI.hide();
+    this.connectingText.setVisible(true);
+    this.connectingText.setText('加入房间中...');
+    this.connectingText.setColor('#ffaa00');
+
+    try {
+      // TODO: 替换为实际的 networkManager.joinRoom(roomId) 调用
+      await networkManager.joinOrCreate({
+        name: 'Player_' + Math.floor(Math.random() * 10000),
+        character: 'assault',
+        roomId: roomId,
+      });
+
+      this.connectingText.setText('加入成功!');
+      this.connectingText.setColor('#00ff00');
+
+      this.time.delayedCall(500, () => {
+        this.scene.start('GameScene', { multiplayer: true });
+      });
+    } catch (error) {
+      console.error('Failed to join room:', error);
+      this.connectingText.setText('加入失败，请重试');
+      this.connectingText.setColor('#ff0000');
+
+      this.time.delayedCall(3000, () => {
+        if (this.connectingText) {
+          this.connectingText.setVisible(false);
+        }
+      });
+    }
+  }
+
+  private async createRoom() {
+    if (!this.connectingText) return;
+
+    this.roomListUI.hide();
+    this.connectingText.setVisible(true);
+    this.connectingText.setText('创建房间中...');
+    this.connectingText.setColor('#ffaa00');
+
+    try {
+      // TODO: 替换为实际的 networkManager.createRoom() 调用
+      await networkManager.joinOrCreate({
+        name: 'Player_' + Math.floor(Math.random() * 10000),
+        character: 'assault',
+        createNew: true,
+      });
+
+      this.connectingText.setText('创建成功!');
+      this.connectingText.setColor('#00ff00');
+
+      this.time.delayedCall(500, () => {
+        this.scene.start('GameScene', { multiplayer: true });
+      });
+    } catch (error) {
+      console.error('Failed to create room:', error);
+      this.connectingText.setText('创建失败，请重试');
+      this.connectingText.setColor('#ff0000');
+
+      this.time.delayedCall(3000, () => {
+        if (this.connectingText) {
+          this.connectingText.setVisible(false);
+        }
+      });
+    }
+  }
+
+  private async quickMatch() {
+    if (!this.connectingText) return;
+
+    this.roomListUI.hide();
+    this.connectingText.setVisible(true);
+    this.connectingText.setText('快速匹配中...');
+    this.connectingText.setColor('#ffaa00');
+
+    try {
+      // 快速匹配 - 加入第一个可用房间或创建新房间
+      await networkManager.joinOrCreate({
+        name: 'Player_' + Math.floor(Math.random() * 10000),
+        character: 'assault',
+      });
+
+      this.connectingText.setText('匹配成功!');
+      this.connectingText.setColor('#00ff00');
+
+      this.time.delayedCall(500, () => {
+        this.scene.start('GameScene', { multiplayer: true });
+      });
+    } catch (error) {
+      console.error('Failed to quick match:', error);
+      this.connectingText.setText('匹配失败，请重试');
+      this.connectingText.setColor('#ff0000');
+
+      this.time.delayedCall(3000, () => {
+        if (this.connectingText) {
+          this.connectingText.setVisible(false);
+        }
+      });
+    }
   }
 
   private async startMultiplayerGame() {
