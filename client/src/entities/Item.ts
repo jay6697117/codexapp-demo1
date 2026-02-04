@@ -17,6 +17,8 @@ export class Item extends Phaser.GameObjects.Container {
   private sprite: Phaser.GameObjects.Image;
   private label: Phaser.GameObjects.Text;
   private glowTween: Phaser.Tweens.Tween | null = null;
+  private floatTween: Phaser.Tweens.Tween | null = null;
+  private glowGraphics: Phaser.GameObjects.Graphics | null = null;
   private bodyPhysics!: Phaser.Physics.Arcade.Body;
 
   constructor(scene: Phaser.Scene, config: ItemConfig) {
@@ -85,19 +87,58 @@ export class Item extends Phaser.GameObjects.Container {
   }
 
   private addGlowEffect() {
+    // 发光动画
     this.glowTween = this.scene.tweens.add({
       targets: this.sprite,
-      alpha: { from: 1, to: 0.6 },
-      scale: { from: 1, to: 1.1 },
-      duration: 500,
+      alpha: { from: 1, to: 0.7 },
+      scale: { from: 1, to: 1.15 },
+      duration: 600,
       yoyo: true,
       repeat: -1,
     });
+
+    // 悬浮动画
+    this.floatTween = this.scene.tweens.add({
+      targets: this,
+      y: this.y - 6,
+      duration: 800,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut',
+    });
+
+    // 像素发光底座
+    this.glowGraphics = this.scene.add.graphics();
+    this.glowGraphics.setDepth(this.depth - 1);
+    this.updateGlowGraphics();
+  }
+
+  private updateGlowGraphics() {
+    if (!this.glowGraphics) return;
+
+    this.glowGraphics.clear();
+    const color = this.getItemColor();
+
+    // 像素风格发光效果
+    this.glowGraphics.fillStyle(color, 0.3);
+    this.glowGraphics.fillRect(this.x - 14, this.y - 14, 28, 28);
+    this.glowGraphics.fillStyle(color, 0.15);
+    this.glowGraphics.fillRect(this.x - 18, this.y - 18, 36, 36);
+  }
+
+  update() {
+    this.updateGlowGraphics();
   }
 
   destroy(fromScene?: boolean) {
     if (this.glowTween) {
       this.glowTween.destroy();
+    }
+    if (this.floatTween) {
+      this.floatTween.destroy();
+    }
+    if (this.glowGraphics) {
+      this.glowGraphics.destroy();
     }
     super.destroy(fromScene);
   }
