@@ -1,5 +1,38 @@
 import * as Colyseus from 'colyseus.js';
-import { EventEmitter } from 'events';
+
+// 浏览器兼容的 EventEmitter 实现
+class BrowserEventEmitter {
+  private listeners: Map<string, Set<(...args: any[]) => void>> = new Map();
+
+  on(event: string, callback: (...args: any[]) => void): this {
+    if (!this.listeners.has(event)) {
+      this.listeners.set(event, new Set());
+    }
+    this.listeners.get(event)!.add(callback);
+    return this;
+  }
+
+  off(event: string, callback: (...args: any[]) => void): this {
+    this.listeners.get(event)?.delete(callback);
+    return this;
+  }
+
+  emit(event: string, ...args: any[]): boolean {
+    const callbacks = this.listeners.get(event);
+    if (!callbacks || callbacks.size === 0) return false;
+    callbacks.forEach(cb => cb(...args));
+    return true;
+  }
+
+  removeAllListeners(event?: string): this {
+    if (event) {
+      this.listeners.delete(event);
+    } else {
+      this.listeners.clear();
+    }
+    return this;
+  }
+}
 
 export interface JoinOptions {
   name: string;
@@ -15,7 +48,7 @@ export interface InputData {
   seq: number;
 }
 
-export class NetworkManager extends EventEmitter {
+export class NetworkManager extends BrowserEventEmitter {
   private static instance: NetworkManager;
   private client: Colyseus.Client;
   private room: Colyseus.Room | null = null;
