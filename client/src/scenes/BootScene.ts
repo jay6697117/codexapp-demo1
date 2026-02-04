@@ -72,12 +72,36 @@ export class BootScene extends Phaser.Scene {
   }
 
   private createPlaceholderAssets() {
-    Object.entries(CHARACTER_PATTERNS).forEach(([name, pattern]) => {
+    Object.entries(CHARACTER_PATTERNS).forEach(([name, patterns]) => {
       const palette = CHARACTER_PALETTES[name] || {};
-      const graphics = this.make.graphics({ x: 0, y: 0 });
-      renderPatternToGraphics(graphics, pattern, palette, 2);
-      graphics.generateTexture(`player_${name}`, 32, 32);
-      graphics.destroy();
+
+      // Generate textures for each direction
+      Object.entries(patterns).forEach(([dir, pattern]) => {
+        const graphics = this.make.graphics({ x: 0, y: 0 });
+        renderPatternToGraphics(graphics, pattern, palette, 2);
+        graphics.generateTexture(`player_${name}_${dir}`, 32, 32);
+        graphics.destroy();
+      });
+
+      // Create animations
+      this.anims.create({
+        key: `${name}_down`,
+        frames: [{ key: `player_${name}_down` }],
+        frameRate: 1,
+      });
+      this.anims.create({
+        key: `${name}_up`,
+        frames: [{ key: `player_${name}_up` }],
+        frameRate: 1,
+      });
+      this.anims.create({
+        key: `${name}_side`,
+        frames: [{ key: `player_${name}_side` }],
+        frameRate: 1,
+      });
+      // Note: We'll implement walking animations by toggling textures or modifying Y offset in Player.ts
+      // since true frame-by-frame animation requires more patterns.
+      // For now, we use the directional bases.
     });
 
     const bulletGraphics = this.make.graphics({ x: 0, y: 0 });

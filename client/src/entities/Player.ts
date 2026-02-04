@@ -15,7 +15,7 @@ export class Player extends Phaser.GameObjects.Container {
   public readonly characterType: CharacterType;
   public isLocalPlayer: boolean;
 
-  private sprite: Phaser.GameObjects.Image;
+  private sprite: Phaser.GameObjects.Sprite;
   private nameText: Phaser.GameObjects.Text;
   private bodyPhysics!: Phaser.Physics.Arcade.Body;
 
@@ -68,7 +68,7 @@ export class Player extends Phaser.GameObjects.Container {
     this.moveSpeed = GAME_CONFIG.PLAYER_SPEED * this.characterConfig.speedModifier;
 
     // 创建玩家精灵
-    this.sprite = scene.add.image(0, 0, `player_${characterType}`);
+    this.sprite = scene.add.sprite(0, 0, `player_${characterType}_down`);
     this.add(this.sprite);
 
     // 创建名字标签
@@ -369,8 +369,8 @@ export class Player extends Phaser.GameObjects.Container {
     const velocityY = input.dy * this.moveSpeed;
     this.bodyPhysics.setVelocity(velocityX, velocityY);
 
-    // 朝向（旋转精灵）
-    this.sprite.setRotation(input.angle + Math.PI / 2); // +90度因为精灵默认朝上
+    // 朝向（使用方向动画代替旋转）
+    this.updateVisuals(input.angle);
 
     // 换弹
     if (reloading) {
@@ -395,9 +395,8 @@ export class Player extends Phaser.GameObjects.Container {
   setTargetPosition(x: number, y: number, angle: number) {
     if (this.isLocalPlayer) return;
 
-    // 简单设置位置（后续会改进为插值）
     this.setPosition(x, y);
-    this.sprite.setRotation(angle + Math.PI / 2);
+    this.updateVisuals(angle);
   }
 
   getPosition(): { x: number; y: number } {
@@ -478,5 +477,44 @@ export class Player extends Phaser.GameObjects.Container {
     this.nameText.destroy();
     this.healthBar.destroy();
     super.destroy(fromScene);
+  }
+
+  private updateVisuals(angleRad: number) {
+    // 将弧度转换为角度 (-180 到 180)
+    let degrees = Phaser.Math.RadToDeg(angleRad);
+
+    // 确定 4 个方向
+    // Right: -45 to 45
+    // Down: 45 to 135
+    // Left: 135 to 180 / -180 to -135
+    // Up: -135 to -45
+
+    let direction = 'down';
+    let flipX = false;
+
+    if (degrees > -45 && degrees <= 45) {
+      direction = 'side'; // Right
+      flipX = false;
+    } else if (degrees > 45 && degrees <= 135) {
+      direction = 'down';
+    } else if (degrees > -135 && degrees <= -45) {
+      direction = 'up';
+    } else {
+      direction = 'side'; // Left
+      flipX = true;
+    }
+
+    // 播放对应方向动画 (由于只有1帧，play和setTexture效果类似，但play支持扩展)
+    const animKey = `${this.characterType}_${direction}`;
+
+    // 只有当动画改变时才播放，避免重置帧
+    if (this.sprite.anims.currentAnim?.key !== animKey) {
+        this.sprite.play(animKey);
+    }
+
+    this.sprite.setFlipX(flipX);
+
+    // 取消旋转，确保像素不对齐
+    this.sprite.setRotation(0);
   }
 }

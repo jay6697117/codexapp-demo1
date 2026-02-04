@@ -9,8 +9,7 @@ export class AmmoBox extends Phaser.GameObjects.Container {
   private weaponText: Phaser.GameObjects.Text;
   private ammoText: Phaser.GameObjects.Text;
   private reloadText: Phaser.GameObjects.Text;
-  private width: number;
-  private height: number;
+  // width and height are inherited from Container
 
   constructor(scene: Phaser.Scene, x: number, y: number, width: number = 180, height: number = 70) {
     super(scene, x, y);

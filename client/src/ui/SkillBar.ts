@@ -9,8 +9,7 @@ export class SkillBar extends Phaser.GameObjects.Container {
   private bar: Phaser.GameObjects.Graphics;
   private labelText: Phaser.GameObjects.Text;
   private statusText: Phaser.GameObjects.Text;
-  private width: number;
-  private height: number;
+  // width/height inherited from Container
 
   constructor(scene: Phaser.Scene, x: number, y: number, width: number = 160, height: number = 70) {
     super(scene, x, y);

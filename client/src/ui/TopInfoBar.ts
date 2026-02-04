@@ -6,8 +6,7 @@ export class TopInfoBar extends Phaser.GameObjects.Container {
   private background: Phaser.GameObjects.Graphics;
   private border: Phaser.GameObjects.Graphics;
   private text: Phaser.GameObjects.Text;
-  private width: number;
-  private height: number;
+  // width/height inherited from Container
 
   constructor(scene: Phaser.Scene, x: number, y: number, width: number = 300, height: number = 36) {
     super(scene, x, y);

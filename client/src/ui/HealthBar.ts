@@ -14,8 +14,7 @@ export class HealthBar extends Phaser.GameObjects.Container {
   private icon: Phaser.GameObjects.Graphics | null = null;
   private hpText: Phaser.GameObjects.Text | null = null;
   private blinkTween: Phaser.Tweens.Tween | null = null;
-  private width: number;
-  private height: number;
+  // width/height inherited from Container
   private maxHp: number;
   private currentHp: number;
   private options: HealthBarOptions;

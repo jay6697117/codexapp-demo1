@@ -8,7 +8,9 @@ function expectPatternSize(pattern: string[], size: number) {
 
 describe('pixel patterns', () => {
   it('character patterns are 16x16', () => {
-    Object.values(CHARACTER_PATTERNS).forEach(pattern => expectPatternSize(pattern, 16));
+    Object.values(CHARACTER_PATTERNS).forEach(directions => {
+      Object.values(directions).forEach(pattern => expectPatternSize(pattern, 16));
+    });
   });
 
   it('item patterns are 16x16', () => {
