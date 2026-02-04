@@ -106,8 +106,8 @@ const rooms: Map<string, GameRoom> = new Map();
 // 创建 Hono 应用
 const app = new Hono();
 
-// 健康检查
-app.get("/", (c) => {
+// API: 服务器状态
+app.get("/api/status", (c) => {
   return c.json({
     name: "Pixel Arena Game Server",
     version: "1.0.0",
@@ -117,7 +117,8 @@ app.get("/", (c) => {
   });
 });
 
-app.get("/health", (c) => {
+// API: 健康检查
+app.get("/api/health", (c) => {
   return c.json({ status: "ok" });
 });
 
