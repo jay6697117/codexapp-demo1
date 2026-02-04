@@ -231,25 +231,25 @@ export const CHARACTER_PATTERNS: Record<string, Record<string, PixelPattern>> = 
 
 export const CHARACTER_PALETTES: Record<string, Record<string, number>> = {
   assault: {
-    H: 0x3f7d3a,
-    B: 0x8b8c7a,
-    A: 0x556b2f,
-    W: 0x1f2937,
+    H: 0x14f195, // Neon Green Helmet
+    B: 0x334155, // Dark Blue-Grey Body
+    A: 0x94a3b8, // Light Grey Armor
+    W: 0x0f172a, // Dark Weapon
   },
   ranger: {
-    C: 0x0f172a,
-    B: 0x1e3a8a,
-    W: 0x0f172a,
+    C: 0x9945ff, // Deep Purple Cape
+    B: 0xfacc15, // Golden Body
+    W: 0x1e293b, // Dark Weapon
   },
   tank: {
-    A: 0x9ca3af,
-    B: 0x7c2d12,
-    S: 0xb91c1c,
+    A: 0x64748b, // Steel Grey
+    B: 0xea580c, // Burnt Orange
+    S: 0xef4444, // Red Stripe
   },
   medic: {
-    M: 0xf8fafc,
-    B: 0x22c55e,
-    P: 0x14532d,
+    M: 0xf8fafc, // White Suit
+    B: 0x06b6d4, // Cyan Cross/Accents
+    P: 0x0f172a, // Dark Pants
   },
 };
 

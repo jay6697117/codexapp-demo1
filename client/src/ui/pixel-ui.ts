@@ -5,25 +5,47 @@ export const PIXEL_FONTS = {
   numbers: '"VT323", monospace',
 } as const;
 
+// Solana/Pumpville Palette
+const PALETTE = {
+  neonGreen: 0x14f195,
+  deepPurple: 0x9945ff,
+  darkBg: 0x0f172a, // Slate 900
+  glassBg: 0x1e293b, // Slate 800
+  text: 0xf8fafc,
+  textMuted: 0x94a3b8,
+  danger: 0xef4444,
+  warning: 0xf59e0b,
+  info: 0x3b82f6,
+};
+
 export const PIXEL_COLORS = {
-  panelBg: 0x0b0b0f,
-  panelBorder: 0x2a2a38,
-  panelHighlight: 0x4b4b5e,
-  panelInset: 0x111827,
-  hpFill: 0xff3b3b,
-  hpBackground: 0x3a0f0f,
-  hpBorder: 0x220606,
-  ammoFill: 0x38bdf8,
-  ammoBackground: 0x0b1c2b,
-  ammoBorder: 0x0f2740,
-  skillReady: 0x22c55e,
-  skillActive: 0x38bdf8,
-  skillCooldown: 0xf97316,
-  minimapBorder: 0xeab308,
-  minimapGrid: 0x1f2937,
+  panelBg: PALETTE.glassBg, // Lighter, glassy feel
+  panelBorder: PALETTE.deepPurple, // Brand glow
+  panelHighlight: PALETTE.neonGreen,
+  panelInset: PALETTE.darkBg,
+
+  hpFill: PALETTE.danger,
+  hpBackground: 0x450a0a,
+  hpBorder: 0x450a0a,
+
+  ammoFill: PALETTE.neonGreen, // Pump green
+  ammoBackground: 0x064e3b,
+  ammoBorder: 0x064e3b,
+
+  skillReady: PALETTE.neonGreen,
+  skillActive: PALETTE.info,
+  skillCooldown: PALETTE.warning,
+
+  minimapBorder: PALETTE.deepPurple,
+  minimapGrid: 0x334155,
+
   textPrimary: '#f8fafc',
   textMuted: '#94a3b8',
   textWarning: '#f59e0b',
+
+  // New specific Pumpville colors
+  neonGreen: PALETTE.neonGreen,
+  deepPurple: PALETTE.deepPurple,
 } as const;
 
 export function clampPercent(value: number): number {
