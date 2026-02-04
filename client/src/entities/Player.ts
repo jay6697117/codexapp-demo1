@@ -8,6 +8,7 @@ import { SkillEffects } from '../effects/SkillEffects';
 import { DamageEffects } from '../effects/DamageEffects';
 import { HealthBar } from '../ui/HealthBar';
 import { Item } from './Item';
+import { ClientPrediction, InputSnapshot } from '../network/ClientPrediction';
 
 export class Player extends Phaser.GameObjects.Container {
   public readonly playerId: string;
@@ -44,6 +45,10 @@ export class Player extends Phaser.GameObjects.Container {
   private isAlive: boolean = true;
   private kills: number = 0;
   private damageDealt: number = 0;
+
+  // 客户端预测系统
+  private prediction: ClientPrediction;
+  private lastInputSnapshot: InputSnapshot | null = null;
 
   constructor(
     scene: Phaser.Scene,
@@ -100,6 +105,9 @@ export class Player extends Phaser.GameObjects.Container {
     // 创建血条（在名字下方）
     this.healthBar = new HealthBar(scene, 0, -32, 40, 5, this.maxHp);
     this.add(this.healthBar);
+
+    // 初始化客户端预测系统
+    this.prediction = new ClientPrediction();
   }
 
   // 设置 BulletManager
@@ -351,6 +359,11 @@ export class Player extends Phaser.GameObjects.Container {
     // 更新技能管理器
     this.skillManager.update();
 
+    // 记录输入用于客户端预测
+    if (input.dx !== 0 || input.dy !== 0) {
+      this.lastInputSnapshot = this.prediction.recordInput(input.dx, input.dy, this.x, this.y);
+    }
+
     // 移动
     const velocityX = input.dx * this.moveSpeed;
     const velocityY = input.dy * this.moveSpeed;
@@ -389,6 +402,75 @@ export class Player extends Phaser.GameObjects.Container {
 
   getPosition(): { x: number; y: number } {
     return { x: this.x, y: this.y };
+  }
+
+  /**
+   * 服务器状态调和 - 当收到服务器位置更新时调用
+   */
+  reconcileWithServer(serverX: number, serverY: number, serverSequence: number) {
+    if (!this.isLocalPlayer) return;
+
+    // 检查是否需要调和
+    if (!this.prediction.needsReconciliation(this.x, this.y, serverX, serverY)) {
+      // 位置误差在阈值内，只需移除已确认的输入
+      this.prediction.reconcile(
+        { x: serverX, y: serverY, sequence: serverSequence, timestamp: Date.now() },
+        this.moveSpeed,
+        this.scene.game.loop.delta
+      );
+      return;
+    }
+
+    const serverState = {
+      x: serverX,
+      y: serverY,
+      sequence: serverSequence,
+      timestamp: Date.now(),
+    };
+
+    // 从服务器状态重新应用未确认的输入
+    const reconciled = this.prediction.reconcile(serverState, this.moveSpeed, this.scene.game.loop.delta);
+
+    if (reconciled) {
+      // 平滑过渡到调和后的位置，避免跳跃感
+      const smooth = this.prediction.smoothReconcile(
+        this.x,
+        this.y,
+        reconciled.x,
+        reconciled.y,
+        0.2
+      );
+      this.setPosition(smooth.x, smooth.y);
+    }
+  }
+
+  /**
+   * 获取最后一次输入快照（用于网络发送）
+   */
+  getLastInputSnapshot(): InputSnapshot | null {
+    return this.lastInputSnapshot;
+  }
+
+  /**
+   * 获取当前输入序列号
+   */
+  getInputSequence(): number {
+    return this.prediction.getSequence();
+  }
+
+  /**
+   * 获取待处理输入数量（用于调试）
+   */
+  getPendingInputCount(): number {
+    return this.prediction.getPendingCount();
+  }
+
+  /**
+   * 清空预测状态（重生时调用）
+   */
+  clearPrediction() {
+    this.prediction.clear();
+    this.lastInputSnapshot = null;
   }
 
   destroy(fromScene?: boolean) {
