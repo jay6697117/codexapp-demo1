@@ -16,11 +16,27 @@ interface InputMessage {
   seq: number;
 }
 
+// Server-side bullet structure for hit detection
+interface ServerBullet {
+  id: string;
+  ownerId: string;
+  x: number;
+  y: number;
+  angle: number;
+  speed: number;
+  damage: number;
+  maxRange: number;
+  distanceTraveled: number;
+}
+
 export class GameRoom extends Room<GameRoomState> {
   private gameLoop: ReturnType<typeof setInterval> | null = null;
   private gameStartTime: number = 0;
   private itemIdCounter: number = 0;
   private bulletIdCounter: number = 0;
+
+  // Server-side bullet tracking for authoritative hit detection
+  private activeBullets: Map<string, ServerBullet> = new Map();
 
   onCreate(options: any) {
     console.log('GameRoom created!', options);
@@ -127,11 +143,43 @@ export class GameRoom extends Room<GameRoomState> {
     if (!player || !player.isAlive) return;
     if (player.ammo <= 0) return;
 
+    const weaponConfig = WEAPONS[player.weapon as keyof typeof WEAPONS];
+    if (!weaponConfig) return;
+
     // 减少弹药
     player.ammo--;
 
-    // 创建子弹（简化版，实际游戏中需要更复杂的处理）
-    // 子弹碰撞检测在游戏循环中处理
+    // 创建服务器端子弹用于碰撞检测
+    const bulletId = `bullet_${++this.bulletIdCounter}`;
+    const baseBullet: ServerBullet = {
+      id: bulletId,
+      ownerId: client.sessionId,
+      x: player.x,
+      y: player.y,
+      angle: angle,
+      speed: 800,
+      damage: weaponConfig.damage,
+      maxRange: weaponConfig.range,
+      distanceTraveled: 0,
+    };
+
+    // 霰弹枪特殊处理 - 发射多颗子弹
+    if (player.weapon === 'shotgun') {
+      for (let i = -2; i <= 2; i++) {
+        const spreadAngle = angle + (i * 0.15);
+        const pelletId = `${bulletId}_${i}`;
+        this.activeBullets.set(pelletId, {
+          ...baseBullet,
+          id: pelletId,
+          angle: spreadAngle,
+          damage: weaponConfig.damage / 5, // 分散伤害
+        });
+      }
+    } else {
+      this.activeBullets.set(bulletId, baseBullet);
+    }
+
+    // 广播子弹给所有客户端用于视觉效果
     this.broadcast('bullet', {
       ownerId: client.sessionId,
       x: player.x,
@@ -283,7 +331,14 @@ export class GameRoom extends Room<GameRoomState> {
     if (this.state.phase !== 'playing') return;
 
     const now = Date.now();
+    const deltaTime = 1 / GAME_CONFIG.SERVER_TICK_RATE;
     this.state.elapsedTime = now - this.gameStartTime;
+
+    // 更新子弹（服务器权威碰撞检测）
+    this.updateBullets(deltaTime);
+
+    // 更新道具拾取
+    this.updateItemPickups();
 
     // 更新安全区
     this.updateSafeZone();
@@ -450,5 +505,149 @@ export class GameRoom extends Room<GameRoomState> {
 
       this.state.items.set(item.id, item);
     }
+  }
+
+  // ============================================
+  // Server-Authoritative Hit Detection System
+  // ============================================
+
+  /**
+   * Update all active bullets and check for collisions
+   * This is the core of server-authoritative hit detection
+   */
+  private updateBullets(deltaTime: number) {
+    const bulletsToRemove: string[] = [];
+
+    this.activeBullets.forEach((bullet, bulletId) => {
+      // Move bullet
+      const moveDistance = bullet.speed * deltaTime;
+      bullet.x += Math.cos(bullet.angle) * moveDistance;
+      bullet.y += Math.sin(bullet.angle) * moveDistance;
+      bullet.distanceTraveled += moveDistance;
+
+      // Check if bullet exceeded max range
+      if (bullet.distanceTraveled >= bullet.maxRange) {
+        bulletsToRemove.push(bulletId);
+        return;
+      }
+
+      // Check if bullet is out of map bounds
+      if (bullet.x < 0 || bullet.x > GAME_CONFIG.MAP_WIDTH ||
+          bullet.y < 0 || bullet.y > GAME_CONFIG.MAP_HEIGHT) {
+        bulletsToRemove.push(bulletId);
+        return;
+      }
+
+      // Collision detection - check if bullet hit any player
+      let hitPlayer = false;
+      this.state.players.forEach((player, playerId) => {
+        if (hitPlayer) return; // Already hit someone
+        if (playerId === bullet.ownerId) return; // Don't hit self
+        if (!player.isAlive) return; // Skip dead players
+        if (player.isInvincible) return; // Skip invincible players
+
+        // Simple circle collision detection
+        const distance = Math.sqrt(
+          Math.pow(bullet.x - player.x, 2) +
+          Math.pow(bullet.y - player.y, 2)
+        );
+
+        const playerRadius = 20; // Player collision radius
+        if (distance < playerRadius) {
+          // Hit! Apply damage
+          this.applyDamage(playerId, bullet.ownerId, bullet.damage);
+          hitPlayer = true;
+          bulletsToRemove.push(bulletId);
+        }
+      });
+    });
+
+    // Remove expired/hit bullets
+    bulletsToRemove.forEach(id => this.activeBullets.delete(id));
+  }
+
+  /**
+   * Apply damage to a player (server-authoritative)
+   */
+  private applyDamage(victimId: string, attackerId: string, damage: number) {
+    const victim = this.state.players.get(victimId);
+    if (!victim || !victim.isAlive) return;
+
+    // Apply damage
+    victim.hp = Math.max(0, victim.hp - damage);
+
+    // Broadcast damage event to all clients for visual feedback
+    this.broadcast('damage', {
+      victimId,
+      attackerId,
+      damage,
+      remainingHp: victim.hp,
+    });
+
+    // Check if player died
+    if (victim.hp <= 0) {
+      this.killPlayer(victimId, attackerId);
+    }
+  }
+
+  /**
+   * Update item pickups (server-authoritative)
+   */
+  private updateItemPickups() {
+    const itemsToRemove: string[] = [];
+
+    this.state.items.forEach((item, itemId) => {
+      if (!item.isActive) return;
+
+      this.state.players.forEach((player, playerId) => {
+        if (!player.isAlive) return;
+
+        // Check distance for pickup
+        const distance = Math.sqrt(
+          Math.pow(item.x - player.x, 2) +
+          Math.pow(item.y - player.y, 2)
+        );
+
+        const pickupRadius = 30; // Pickup range
+        if (distance < pickupRadius) {
+          this.pickupItem(playerId, itemId, item);
+          itemsToRemove.push(itemId);
+        }
+      });
+    });
+
+    // Remove picked up items
+    itemsToRemove.forEach(id => this.state.items.delete(id));
+  }
+
+  /**
+   * Handle item pickup logic
+   */
+  private pickupItem(playerId: string, itemId: string, item: ItemState) {
+    const player = this.state.players.get(playerId);
+    if (!player) return;
+
+    if (item.itemType === 'weapon') {
+      // Pickup weapon
+      player.weapon = item.subType;
+      const weaponConfig = WEAPONS[item.subType as keyof typeof WEAPONS];
+      if (weaponConfig) {
+        player.ammo = weaponConfig.magazineSize;
+      }
+    } else if (item.itemType === 'skill') {
+      // Pickup skill item
+      player.itemSkill = item.subType;
+    }
+
+    // Mark item as inactive
+    item.isActive = false;
+
+    // Broadcast pickup event to all clients
+    this.broadcast('pickup', {
+      playerId,
+      itemId,
+      itemType: item.itemType,
+      subType: item.subType,
+    });
   }
 }

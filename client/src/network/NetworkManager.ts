@@ -105,6 +105,16 @@ export class NetworkManager extends EventEmitter {
       this.emit('kill', data);
     });
 
+    // 伤害消息（服务器权威判定）
+    this.room.onMessage('damage', (data) => {
+      this.emit('damage', data);
+    });
+
+    // 道具拾取消息（服务器权威判定）
+    this.room.onMessage('pickup', (data) => {
+      this.emit('pickup', data);
+    });
+
     // 游戏结束
     this.room.onMessage('gameEnd', (data) => {
       this.emit('gameEnd', data);
