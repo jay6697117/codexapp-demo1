@@ -12,6 +12,7 @@ import { KillFeed } from '../ui/KillFeed';
 import { GameOverScreen, PlayerResult } from '../ui/GameOverScreen';
 import { Leaderboard, LeaderboardEntry } from '../ui/Leaderboard';
 import { Minimap, MinimapPlayer, MinimapZone } from '../ui/Minimap';
+import { PickupNotification } from '../ui/PickupNotification';
 import { networkManager } from '../network';
 
 export class GameScene extends Phaser.Scene {
@@ -25,6 +26,7 @@ export class GameScene extends Phaser.Scene {
   private gameOverScreen!: GameOverScreen;
   private leaderboard!: Leaderboard;
   private minimap!: Minimap;
+  private pickupNotification!: PickupNotification;
 
   // 多人模式相关
   private remotePlayers: Map<string, RemotePlayer> = new Map();
@@ -94,6 +96,7 @@ export class GameScene extends Phaser.Scene {
         const itemObj = item as Item;
         this.localPlayer.pickupItem(itemObj);
         this.itemManager.removeItem(itemObj.itemId);
+        this.pickupNotification.show(itemObj.subType.toUpperCase(), itemObj.itemType);
       }
     );
 
@@ -137,6 +140,9 @@ export class GameScene extends Phaser.Scene {
 
     // 初始化小地图
     this.minimap = new Minimap(this);
+
+    // 初始化拾取提示
+    this.pickupNotification = new PickupNotification(this);
 
     // 每秒检查毒圈伤害
     this.zoneDamageTimer = this.time.addEvent({
