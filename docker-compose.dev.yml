@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: server
+    container_name: pixel-arena-server-dev
+    ports:
+      - "2567:2567"
+    environment:
+      - NODE_ENV=development
+      - PORT=2567
+    volumes:
+      - ./server/src:/app/server/src
+      - ./shared/src:/app/shared/src
+    networks:
+      - pixel-arena-network-dev
+
+  client:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: client
+    container_name: pixel-arena-client-dev
+    ports:
+      - "3000:80"
+    depends_on:
+      - server
+    networks:
+      - pixel-arena-network-dev
+
+networks:
+  pixel-arena-network-dev:
+    driver: bridge
