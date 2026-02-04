@@ -25,11 +25,13 @@
     "include": [
       "server/",
       "shared/",
+      "client/dist/",
       "deno.json"
     ],
     "exclude": [
       "node_modules/",
-      "client/",
+      "client/src/",
+      "client/node_modules/",
       "*.log"
     ]
   }

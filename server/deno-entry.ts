@@ -6,6 +6,7 @@
  */
 
 import { Hono } from "@hono/hono";
+import { serveStatic } from "@hono/hono/deno";
 import { Server } from "colyseus";
 import { WebSocketTransport } from "@colyseus/ws-transport";
 
@@ -193,6 +194,12 @@ app.get("/ws/:roomId", async (c) => {
 
   return response;
 });
+
+// 静态文件服务（前端）- 必须放在 API 路由之后作为 fallback
+app.use("/*", serveStatic({ root: "./client/dist" }));
+
+// 对于 SPA，所有未匹配的路由返回 index.html
+app.get("/*", serveStatic({ path: "./client/dist/index.html" }));
 
 // 导出 fetch 处理器（Deno Deploy 需要）
 export default app;
