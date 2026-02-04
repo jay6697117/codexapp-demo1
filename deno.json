@@ -1,0 +1,36 @@
+{
+  "name": "pixel-arena",
+  "version": "1.0.0",
+  "tasks": {
+    "dev": "deno run --allow-net --allow-read --allow-env server/deno-entry.ts",
+    "start": "deno run --allow-net --allow-read --allow-env server/deno-entry.ts",
+    "check": "deno check server/deno-entry.ts",
+    "fmt": "deno fmt",
+    "lint": "deno lint"
+  },
+  "imports": {
+    "@std/http": "jsr:@std/http@^1.0.0",
+    "@hono/hono": "jsr:@hono/hono@^4.0.0",
+    "colyseus": "npm:colyseus@^0.15.0",
+    "@colyseus/schema": "npm:@colyseus/schema@^2.0.0",
+    "@colyseus/ws-transport": "npm:@colyseus/ws-transport@^0.15.0"
+  },
+  "compilerOptions": {
+    "lib": ["deno.window", "dom"],
+    "strict": true
+  },
+  "deploy": {
+    "project": "pixel-arena",
+    "entrypoint": "server/deno-entry.ts",
+    "include": [
+      "server/",
+      "shared/",
+      "deno.json"
+    ],
+    "exclude": [
+      "node_modules/",
+      "client/",
+      "*.log"
+    ]
+  }
+}
