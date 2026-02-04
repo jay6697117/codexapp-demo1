@@ -40,7 +40,20 @@ export class SkillBar extends Phaser.GameObjects.Container {
     scene.add.existing(this);
   }
 
+  private lastState: { skillName: string; cooldownPercent: number; isActive: boolean; remainingMs: number } | null = null;
+
   updateSkill(skillName: string, cooldownPercent: number, isActive: boolean, remainingMs: number) {
+    if (
+      this.lastState &&
+      this.lastState.skillName === skillName &&
+      this.lastState.cooldownPercent === cooldownPercent &&
+      this.lastState.isActive === isActive &&
+      this.lastState.remainingMs === remainingMs
+    ) {
+      return;
+    }
+    this.lastState = { skillName, cooldownPercent, isActive, remainingMs };
+
     const state = getSkillState(cooldownPercent, isActive);
     const label = formatSkillLabel(skillName);
     const status = formatSkillStatus(state, remainingMs);

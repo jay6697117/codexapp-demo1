@@ -29,7 +29,24 @@ export class TopInfoBar extends Phaser.GameObjects.Container {
     scene.add.existing(this);
   }
 
+  private lastState: { alive: number; total: number; timeToNextPhase: number; isShrinking: boolean } | null = null;
+
   updateInfo(alive: number, total: number, timeToNextPhase: number, isShrinking: boolean) {
+    // Only update if text would ostensibly change
+    const seconds = Math.max(0, Math.ceil(timeToNextPhase / 1000));
+
+    if (
+      this.lastState &&
+      this.lastState.alive === alive &&
+      this.lastState.total === total &&
+      // Check seconds instead of raw ms to avoid updating every frame
+      Math.max(0, Math.ceil(this.lastState.timeToNextPhase / 1000)) === seconds &&
+      this.lastState.isShrinking === isShrinking
+    ) {
+      return;
+    }
+    this.lastState = { alive, total, timeToNextPhase, isShrinking };
+
     const aliveText = formatAliveText(alive, total);
     const timerText = formatZoneTimer(timeToNextPhase);
     const shrinkText = isShrinking ? ' SHRINKING' : '';

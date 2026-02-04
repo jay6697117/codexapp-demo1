@@ -41,7 +41,21 @@ export class AmmoBox extends Phaser.GameObjects.Container {
     scene.add.existing(this);
   }
 
+  private lastState: { weaponName: string; ammo: number; maxAmmo: number; isReloading: boolean; reloadProgress: number } | null = null;
+
   updateAmmo(weaponName: string, ammo: number, maxAmmo: number, isReloading: boolean, reloadProgress: number) {
+    if (
+      this.lastState &&
+      this.lastState.weaponName === weaponName &&
+      this.lastState.ammo === ammo &&
+      this.lastState.maxAmmo === maxAmmo &&
+      this.lastState.isReloading === isReloading &&
+      this.lastState.reloadProgress === reloadProgress
+    ) {
+      return;
+    }
+    this.lastState = { weaponName, ammo, maxAmmo, isReloading, reloadProgress };
+
     const percent = getAmmoPercent(ammo, maxAmmo);
     const barColor = percent <= 0.25 ? PIXEL_COLORS.hpFill : PIXEL_COLORS.ammoFill;
 

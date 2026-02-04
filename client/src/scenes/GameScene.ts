@@ -37,6 +37,7 @@ export class GameScene extends Phaser.Scene {
   // 多人模式相关
   private remotePlayers: Map<string, RemotePlayer> = new Map();
   private isMultiplayer: boolean = false;
+  private lastInputTime: number = 0;
 
   // HUD 元素
   private ammoBox!: AmmoBox;
@@ -346,14 +347,20 @@ export class GameScene extends Phaser.Scene {
       // 更新远程玩家
       this.remotePlayers.forEach(player => player.update(delta));
 
-      // 发送本地输入到服务器
-      networkManager.sendInput({
-        dx: input.dx,
-        dy: input.dy,
-        angle: input.angle,
-        shooting: input.shooting,
-        skill: input.skill,
-      });
+      // 发送本地输入到服务器 (限制为 30Hz，但关键操作立即发送)
+      const now = Date.now();
+      const isCritical = input.shooting || input.skill;
+
+      if (isCritical || now - this.lastInputTime >= 33) {
+        this.lastInputTime = now;
+        networkManager.sendInput({
+          dx: input.dx,
+          dy: input.dy,
+          angle: input.angle,
+          shooting: input.shooting,
+          skill: input.skill,
+        });
+      }
     }
   }
 

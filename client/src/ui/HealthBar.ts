@@ -61,10 +61,15 @@ export class HealthBar extends Phaser.GameObjects.Container {
   }
 
   setHp(current: number, max?: number) {
-    this.currentHp = Math.max(0, current);
-    if (max !== undefined) {
-      this.maxHp = max;
+    const nextMax = max !== undefined ? max : this.maxHp;
+    const nextCurrent = Math.max(0, current);
+
+    if (this.currentHp === nextCurrent && this.maxHp === nextMax) {
+      return;
     }
+
+    this.currentHp = nextCurrent;
+    this.maxHp = nextMax;
     this.updateBar();
   }
 
