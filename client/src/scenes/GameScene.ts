@@ -7,6 +7,7 @@ import { InputManager } from '../input/InputManager';
 import { BulletManager } from '../managers/BulletManager';
 import { ItemManager } from '../managers/ItemManager';
 import { SafeZoneManager, ZoneState } from '../managers/SafeZoneManager';
+import { AudioManager } from '../managers/AudioManager';
 import { KillFeed } from '../ui/KillFeed';
 import { GameOverScreen, PlayerResult } from '../ui/GameOverScreen';
 import { Leaderboard, LeaderboardEntry } from '../ui/Leaderboard';
@@ -18,6 +19,7 @@ export class GameScene extends Phaser.Scene {
   private bulletManager!: BulletManager;
   private itemManager!: ItemManager;
   private safeZoneManager!: SafeZoneManager;
+  private audioManager!: AudioManager;
   private killFeed!: KillFeed;
   private gameOverScreen!: GameOverScreen;
   private leaderboard!: Leaderboard;
@@ -111,6 +113,9 @@ export class GameScene extends Phaser.Scene {
 
     // 创建 HP HUD
     this.createHpHUD();
+
+    // 初始化音效管理器
+    this.audioManager = new AudioManager(this);
 
     // 初始化缩圈管理器
     this.safeZoneManager = new SafeZoneManager(this);
