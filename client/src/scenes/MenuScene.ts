@@ -159,13 +159,14 @@ export class MenuScene extends Phaser.Scene {
         name: 'Player_' + Math.floor(Math.random() * 10000),
         character: 'assault',
         roomId: roomId,
-      });
+      } as any).then(() => {
+        if (!this.connectingText) return;
+        this.connectingText.setText('加入成功!');
+        this.connectingText.setColor('#00ff00');
 
-      this.connectingText.setText('加入成功!');
-      this.connectingText.setColor('#00ff00');
-
-      this.time.delayedCall(500, () => {
-        this.scene.start('GameScene', { multiplayer: true });
+        this.time.delayedCall(500, () => {
+          this.scene.start('GameScene', { multiplayer: true });
+        });
       });
     } catch (error) {
       console.error('Failed to join room:', error);
@@ -194,7 +195,7 @@ export class MenuScene extends Phaser.Scene {
         name: 'Player_' + Math.floor(Math.random() * 10000),
         character: 'assault',
         createNew: true,
-      });
+      } as any);
 
       this.connectingText.setText('创建成功!');
       this.connectingText.setColor('#00ff00');

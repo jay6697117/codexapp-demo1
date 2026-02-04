@@ -94,6 +94,7 @@ export const CHARACTER_PATTERNS: Record<string, Record<string, PixelPattern>> = 
       '...CC......CC...',
       '...CC......CC...',
       '................',
+      '................',
     ],
     side: [
       '................',

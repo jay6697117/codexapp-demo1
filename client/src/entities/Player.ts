@@ -306,7 +306,7 @@ export class Player extends Phaser.GameObjects.Container {
   }
 
   // 死亡
-  private die() {
+  public die() {
     this.isAlive = false;
     this.damageEffects.playDeathEffect(this.x, this.y);
 

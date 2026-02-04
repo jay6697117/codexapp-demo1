@@ -74,7 +74,7 @@ export class AudioManager {
 
   private playProceduralSound(soundType: SoundType, volume: number, rate: number) {
     try {
-      const audioContext = this.scene.sound.context as AudioContext;
+      const audioContext = (this.scene.sound as any).context as AudioContext;
       if (!audioContext) return;
 
       const gainNode = audioContext.createGain();

@@ -167,7 +167,7 @@ export class GameScene extends Phaser.Scene {
     });
 
     // 检查是否多人模式（通过 scene data 传递）
-    this.isMultiplayer = this.scene.settings.data?.multiplayer || false;
+    this.isMultiplayer = (this.scene.settings.data as any)?.multiplayer || false;
 
     if (this.isMultiplayer) {
       this.setupNetworkListeners();

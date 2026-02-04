@@ -138,11 +138,11 @@ export class BootScene extends Phaser.Scene {
     const tileKeys = ['tile_ground', 'tile_wall', 'tile_water', 'tile_grass', 'tile_lava'];
     const tileSize = 32;
     const tilesetTexture = this.textures.createCanvas('tileset_pixel', tileKeys.length * tileSize, tileSize);
-    const ctx = tilesetTexture.getContext();
+    const ctx = tilesetTexture!.getContext();
     tileKeys.forEach((key, index) => {
       const source = this.textures.get(key).getSourceImage() as HTMLImageElement | HTMLCanvasElement;
       ctx.drawImage(source, index * tileSize, 0, tileSize, tileSize);
     });
-    tilesetTexture.refresh();
+    tilesetTexture!.refresh();
   }
 }

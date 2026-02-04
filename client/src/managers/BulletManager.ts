@@ -26,6 +26,13 @@ export class BulletManager {
     return bullet;
   }
 
+  spawnBullet(x: number, y: number, angle: number, weaponType: WeaponType) {
+    // For network spawned bullets, we might use a generic owner or skip owner check
+    const bullet = new Bullet(this.scene, x, y, angle, 'network', weaponType);
+    this.bullets.add(bullet);
+    return bullet;
+  }
+
   getBullets(): Phaser.GameObjects.Group {
     return this.bullets;
   }
