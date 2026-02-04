@@ -17,4 +17,5 @@ export class PlayerState extends Schema {
   @type('number') skillCooldown: number = 0;
   @type('string') itemSkill: string = '';
   @type('boolean') isInvincible: boolean = false;
+  @type('number') coins: number = 0;
 }

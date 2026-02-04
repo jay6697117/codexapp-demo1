@@ -3,7 +3,7 @@ import { WebSocketTransport } from '@colyseus/ws-transport';
 import express from 'express';
 import { createServer } from 'http';
 import { serverConfig } from './config.js';
-import { GameRoom } from './rooms/index.js';
+import { GameRoom, VillageRoom } from './rooms/index.js';
 
 const { Server } = Colyseus;
 
@@ -32,6 +32,8 @@ const gameServer = new Server({
 // 注册游戏房间
 gameServer.define('game', GameRoom)
   .filterBy(['roomId']);
+
+gameServer.define('village', VillageRoom);
 
 console.log('📦 GameRoom registered');
 

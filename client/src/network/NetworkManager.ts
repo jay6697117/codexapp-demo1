@@ -68,9 +68,9 @@ export class NetworkManager extends BrowserEventEmitter {
     return NetworkManager.instance;
   }
 
-  async joinOrCreate(options: JoinOptions): Promise<Colyseus.Room> {
+  async joinOrCreate(options: JoinOptions, roomName: string = 'game'): Promise<Colyseus.Room> {
     try {
-      this.room = await this.client.joinOrCreate('game', options);
+      this.room = await this.client.joinOrCreate(roomName, options);
       console.log('Joined room:', this.room.id);
 
       this.setupRoomListeners();

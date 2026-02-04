@@ -3,10 +3,11 @@ import { phaserConfig } from './config';
 import { BootScene } from './scenes/BootScene';
 import { MenuScene } from './scenes/MenuScene';
 import { GameScene } from './scenes/GameScene';
+import { VillageScene } from './scenes/VillageScene';
 
 const config: Phaser.Types.Core.GameConfig = {
   ...phaserConfig,
-  scene: [BootScene, MenuScene, GameScene],
+  scene: [BootScene, MenuScene, VillageScene, GameScene],
 };
 
 // 启动游戏
