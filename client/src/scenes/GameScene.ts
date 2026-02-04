@@ -20,6 +20,7 @@ import { TopInfoBar } from '../ui/TopInfoBar';
 import { networkManager } from '../network';
 import { generateTilemap } from '../utils/tilemap-generator';
 import { buildGameTextState } from '../utils/game-text-state';
+import { ParticleManager } from '../effects/ParticleManager';
 
 export class GameScene extends Phaser.Scene {
   public localPlayer!: Player;
@@ -38,6 +39,7 @@ export class GameScene extends Phaser.Scene {
   private remotePlayers: Map<string, RemotePlayer> = new Map();
   private isMultiplayer: boolean = false;
   private lastInputTime: number = 0;
+  public particleManager!: ParticleManager;
 
   // HUD 元素
   private ammoBox!: AmmoBox;
@@ -148,6 +150,9 @@ export class GameScene extends Phaser.Scene {
 
     // 初始化拾取提示
     this.pickupNotification = new PickupNotification(this);
+
+    // 初始化特效管理器
+    this.particleManager = new ParticleManager(this);
 
     this.registerTestHooks();
 
@@ -511,7 +516,12 @@ export class GameScene extends Phaser.Scene {
     if (!this.safeZoneManager.isInsideSafeZone(pos.x, pos.y)) {
       const damage = this.safeZoneManager.getDamage();
       if (damage > 0) {
-        this.localPlayer.takeDamage(damage);
+        if (this.localPlayer.takeDamage(damage)) {
+          // Player died
+        } else {
+           // Shake on damage
+           this.cameras.main.shake(200, 0.005);
+        }
       }
     }
   }

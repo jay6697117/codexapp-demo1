@@ -135,6 +135,10 @@ export class Player extends Phaser.GameObjects.Container {
       this.playerId,
       this.bulletManager
     );
+
+    if (this.isLocalPlayer) {
+       this.scene.cameras.main.shake(100, 0.002);
+    }
   }
 
   // 换弹
@@ -285,6 +289,7 @@ export class Player extends Phaser.GameObjects.Container {
     // 伤害效果
     this.damageEffects.showDamageNumber(this.x, this.y, damage);
     this.damageEffects.playHitFlash(this);
+    (this.scene as any).particleManager?.playHitEffect(this.x, this.y);
 
     if (this.hp <= 0) {
       this.die();
@@ -309,6 +314,7 @@ export class Player extends Phaser.GameObjects.Container {
   public die() {
     this.isAlive = false;
     this.damageEffects.playDeathEffect(this.x, this.y);
+    (this.scene as any).particleManager?.playDeathEffect(this.x, this.y);
 
     // 隐藏玩家
     this.setVisible(false);

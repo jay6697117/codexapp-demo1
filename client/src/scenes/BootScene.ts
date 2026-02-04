@@ -1,13 +1,5 @@
 import Phaser from 'phaser';
-import {
-  CHARACTER_PATTERNS,
-  CHARACTER_PALETTES,
-  ITEM_PATTERNS,
-  ITEM_PALETTES,
-  TILE_PATTERNS,
-  TILE_PALETTES,
-  renderPatternToGraphics,
-} from '../utils/pixel-patterns';
+import { AssetGenerator } from '../utils/AssetGenerator';
 
 export class BootScene extends Phaser.Scene {
   private loadingText!: Phaser.GameObjects.Text;
@@ -72,77 +64,7 @@ export class BootScene extends Phaser.Scene {
   }
 
   private createPlaceholderAssets() {
-    Object.entries(CHARACTER_PATTERNS).forEach(([name, patterns]) => {
-      const palette = CHARACTER_PALETTES[name] || {};
-
-      // Generate textures for each direction
-      Object.entries(patterns).forEach(([dir, pattern]) => {
-        const graphics = this.make.graphics({ x: 0, y: 0 });
-        renderPatternToGraphics(graphics, pattern, palette, 2);
-        graphics.generateTexture(`player_${name}_${dir}`, 32, 32);
-        graphics.destroy();
-      });
-
-      // Create animations
-      this.anims.create({
-        key: `${name}_down`,
-        frames: [{ key: `player_${name}_down` }],
-        frameRate: 1,
-      });
-      this.anims.create({
-        key: `${name}_up`,
-        frames: [{ key: `player_${name}_up` }],
-        frameRate: 1,
-      });
-      this.anims.create({
-        key: `${name}_side`,
-        frames: [{ key: `player_${name}_side` }],
-        frameRate: 1,
-      });
-      // Note: We'll implement walking animations by toggling textures or modifying Y offset in Player.ts
-      // since true frame-by-frame animation requires more patterns.
-      // For now, we use the directional bases.
-    });
-
-    const bulletGraphics = this.make.graphics({ x: 0, y: 0 });
-    bulletGraphics.fillStyle(0xfacc15, 1);
-    bulletGraphics.fillRect(0, 0, 8, 8);
-    bulletGraphics.generateTexture('bullet', 8, 8);
-    bulletGraphics.destroy();
-
-    Object.entries(ITEM_PATTERNS).forEach(([name, pattern]) => {
-      const palette = ITEM_PALETTES[name] || {};
-      const graphics = this.make.graphics({ x: 0, y: 0 });
-      renderPatternToGraphics(graphics, pattern, palette, 1);
-      graphics.generateTexture(`item_${name}`, 16, 16);
-      graphics.destroy();
-    });
-
-    const tileMappings: Record<string, string> = {
-      ground: 'ground',
-      wall: 'wall',
-      water: 'water',
-      grass: 'grass',
-      lava: 'sand',
-    };
-
-    Object.entries(tileMappings).forEach(([name, patternKey]) => {
-      const pattern = TILE_PATTERNS[patternKey];
-      const palette = TILE_PALETTES[patternKey] || {};
-      const graphics = this.make.graphics({ x: 0, y: 0 });
-      renderPatternToGraphics(graphics, pattern, palette, 2);
-      graphics.generateTexture(`tile_${name}`, 32, 32);
-      graphics.destroy();
-    });
-
-    const tileKeys = ['tile_ground', 'tile_wall', 'tile_water', 'tile_grass', 'tile_lava'];
-    const tileSize = 32;
-    const tilesetTexture = this.textures.createCanvas('tileset_pixel', tileKeys.length * tileSize, tileSize);
-    const ctx = tilesetTexture!.getContext();
-    tileKeys.forEach((key, index) => {
-      const source = this.textures.get(key).getSourceImage() as HTMLImageElement | HTMLCanvasElement;
-      ctx.drawImage(source, index * tileSize, 0, tileSize, tileSize);
-    });
-    tilesetTexture!.refresh();
+    const generator = new AssetGenerator(this);
+    generator.generateAllAssets();
   }
 }
