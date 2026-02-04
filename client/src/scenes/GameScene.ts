@@ -18,7 +18,7 @@ import { AmmoBox } from '../ui/AmmoBox';
 import { SkillBar } from '../ui/SkillBar';
 import { TopInfoBar } from '../ui/TopInfoBar';
 import { networkManager } from '../network';
-import { generateTilemap } from '../utils/tilemap-generator';
+import { generateTilemap } from '@pixel-arena/shared';
 import { buildGameTextState } from '../utils/game-text-state';
 import { ParticleManager } from '../effects/ParticleManager';
 
@@ -397,7 +397,7 @@ export class GameScene extends Phaser.Scene {
     const mapWidth = Math.floor(GAME_CONFIG.MAP_WIDTH / tileSize);
     const mapHeight = Math.floor(GAME_CONFIG.MAP_HEIGHT / tileSize);
 
-    const data = generateTilemap(mapWidth, mapHeight, 42);
+    const data = generateTilemap(mapWidth, mapHeight);
     const map = this.make.tilemap({ data, tileWidth: tileSize, tileHeight: tileSize });
     const tileset = map.addTilesetImage('tileset_pixel', 'tileset_pixel', tileSize, tileSize, 0, 0);
     if (!tileset) return;

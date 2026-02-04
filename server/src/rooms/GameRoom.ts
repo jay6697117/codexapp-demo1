@@ -1,6 +1,6 @@
 import { Room, Client } from '@colyseus/core';
 import { GameRoomState, PlayerState, ItemState, SafeZoneState } from '../schemas/index.js';
-import { GAME_CONFIG, CHARACTERS, WEAPONS, SAFE_ZONE } from '@pixel-arena/shared';
+import { GAME_CONFIG, CHARACTERS, WEAPONS, SAFE_ZONE, generateTilemap, isCollidable } from '@pixel-arena/shared';
 
 interface JoinOptions {
   name: string;
@@ -37,9 +37,15 @@ export class GameRoom extends Room<GameRoomState> {
 
   // Server-side bullet tracking for authoritative hit detection
   private activeBullets: Map<string, ServerBullet> = new Map();
+  private mapMatrix: number[][] = [];
 
   onCreate(options: any) {
     console.log('GameRoom created!', options);
+
+    // Generate authoritative map
+    const mapWidthInTiles = Math.floor(GAME_CONFIG.MAP_WIDTH / GAME_CONFIG.TILE_SIZE);
+    const mapHeightInTiles = Math.floor(GAME_CONFIG.MAP_HEIGHT / GAME_CONFIG.TILE_SIZE);
+    this.mapMatrix = generateTilemap(mapWidthInTiles, mapHeightInTiles);
 
     this.setState(new GameRoomState());
     this.maxClients = GAME_CONFIG.MAX_PLAYERS;
@@ -126,9 +132,16 @@ export class GameRoom extends Room<GameRoomState> {
     const speed = GAME_CONFIG.PLAYER_SPEED * speedModifier;
 
     // 计算移动（服务器 tick 基于 50ms）
+    // 计算移动（服务器 tick 基于 50ms）
     const deltaTime = 1 / GAME_CONFIG.SERVER_TICK_RATE;
-    player.x += input.dx * speed * deltaTime;
-    player.y += input.dy * speed * deltaTime;
+    const nextX = player.x + input.dx * speed * deltaTime;
+    const nextY = player.y + input.dy * speed * deltaTime;
+
+    // 碰撞检测
+    if (!this.checkCollision(nextX, nextY)) {
+        player.x = nextX;
+        player.y = nextY;
+    }
 
     // 限制在地图边界内
     player.x = Math.max(32, Math.min(GAME_CONFIG.MAP_WIDTH - 32, player.x));
@@ -649,5 +662,32 @@ export class GameRoom extends Room<GameRoomState> {
       itemType: item.itemType,
       subType: item.subType,
     });
+  }
+
+  private checkCollision(x: number, y: number): boolean {
+      const tileSize = GAME_CONFIG.TILE_SIZE;
+
+      // Check corners of the player (assuming 32x32 size for collision)
+      const radius = 16;
+      const points = [
+          { x: x - radius, y: y - radius },
+          { x: x + radius, y: y - radius },
+          { x: x - radius, y: y + radius },
+          { x: x + radius, y: y + radius },
+      ];
+
+      for (const p of points) {
+          const tileX = Math.floor(p.x / tileSize);
+          const tileY = Math.floor(p.y / tileSize);
+
+          if (tileY < 0 || tileY >= this.mapMatrix.length || tileX < 0 || tileX >= this.mapMatrix[0].length) {
+              return true; // Out of bounds is collision
+          }
+
+          if (isCollidable(this.mapMatrix[tileY][tileX])) {
+              return true;
+          }
+      }
+      return false;
   }
 }

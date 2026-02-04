@@ -124,7 +124,7 @@ export class VillageScene extends Phaser.Scene {
         textureKey = 'char_original'; // Fallback
       }
 
-      entity = this.add.sprite(player.x, player.y, textureKey);
+      const entity = this.add.sprite(player.x, player.y, textureKey);
       entity.setTint(color);
 
       this.playerEntities[sessionId] = entity;
