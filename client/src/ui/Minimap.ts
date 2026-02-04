@@ -146,6 +146,10 @@ export class Minimap {
     this.container.setVisible(visible);
   }
 
+  setPosition(x: number, y: number) {
+    this.container.setPosition(x, y);
+  }
+
   destroy() {
     this.playerDots.forEach(dot => dot.destroy());
     this.playerDots.clear();

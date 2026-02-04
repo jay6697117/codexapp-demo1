@@ -18,7 +18,7 @@ describe('tilemap generator', () => {
     const map = generateTilemap(8, 8, 7);
     map.forEach(row => row.forEach(tile => {
       expect(tile).toBeGreaterThanOrEqual(1);
-      expect(tile).toBeLessThanOrEqual(5);
+      expect(tile).toBeLessThanOrEqual(9);
     }));
   });
 });

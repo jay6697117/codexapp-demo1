@@ -17,16 +17,19 @@ import { PickupNotification } from '../ui/PickupNotification';
 import { AmmoBox } from '../ui/AmmoBox';
 import { SkillBar } from '../ui/SkillBar';
 import { TopInfoBar } from '../ui/TopInfoBar';
+import { calculateHudLayout } from '../ui/hud-layout';
 import { networkManager } from '../network';
 import { generateTilemap } from '@pixel-arena/shared';
 import { buildGameTextState } from '../utils/game-text-state';
 import { ParticleManager } from '../effects/ParticleManager';
 import { getCollidableTileIds } from '../utils/collision-tiles';
+import { BulletCollisionTracker } from '../utils/bullet-collision-tracker';
 
 export class GameScene extends Phaser.Scene {
   public localPlayer!: Player;
   private inputManager!: InputManager;
   private bulletManager!: BulletManager;
+  private bulletCollisionTracker!: BulletCollisionTracker;
   private itemManager!: ItemManager;
   private safeZoneManager!: SafeZoneManager;
   private audioManager!: AudioManager;
@@ -96,6 +99,7 @@ export class GameScene extends Phaser.Scene {
 
     // 初始化子弹管理器
     this.bulletManager = new BulletManager(this);
+    this.bulletCollisionTracker = new BulletCollisionTracker();
     this.localPlayer.setBulletManager(this.bulletManager);
 
     // 初始化道具管理器
@@ -161,6 +165,9 @@ export class GameScene extends Phaser.Scene {
     // 初始化特效管理器
     this.particleManager = new ParticleManager(this);
 
+    this.applyHudLayout();
+    this.scale.on('resize', this.handleResize, this);
+
     // Day/Night Cycle Overlay (Pumpville Style Atmosphere)
     const overlay = this.add.rectangle(0, 0, GAME_CONFIG.MAP_WIDTH, GAME_CONFIG.MAP_HEIGHT, 0x1e1e2e, 0);
     overlay.setScrollFactor(0); // If we wanted HUD-like overlay, but we want world overlay.
@@ -185,6 +192,8 @@ export class GameScene extends Phaser.Scene {
     // Resize overlay on resize event if we had one.
 
     this.registerTestHooks();
+
+    this.setupBulletCollisions();
 
     // 每秒检查毒圈伤害
     this.zoneDamageTimer = this.time.addEvent({
@@ -486,6 +495,30 @@ export class GameScene extends Phaser.Scene {
     this.topInfoBar.updateInfo(this.alivePlayers, this.totalPlayers, state.timeToNextPhase, state.isShrinking);
   }
 
+  private applyHudLayout() {
+    const layout = calculateHudLayout({
+      screenWidth: this.scale.width,
+      screenHeight: this.scale.height,
+    });
+
+    this.ammoBox.setPosition(layout.ammoBox.x, layout.ammoBox.y);
+    this.skillBar.setPosition(layout.skillBar.x, layout.skillBar.y);
+    this.hpBar.setPosition(layout.hpBar.x, layout.hpBar.y);
+
+    this.topInfoBar.setPosition(layout.topInfoBar.x, layout.topInfoBar.y);
+    this.topInfoBar.setSize(layout.topInfoBar.width, layout.topInfoBar.height);
+    this.topInfoBar.setVisible(layout.topInfoBar.width > 0);
+
+    this.minimap.setPosition(layout.minimap.x, layout.minimap.y);
+  }
+
+  private handleResize(gameSize: Phaser.Structs.Size) {
+    if (gameSize.width && gameSize.height) {
+      this.cameras.main.setSize(gameSize.width, gameSize.height);
+    }
+    this.applyHudLayout();
+  }
+
   private registerTestHooks() {
     const win = window as unknown as {
       render_game_to_text?: () => string;
@@ -500,6 +533,8 @@ export class GameScene extends Phaser.Scene {
     const weapon = this.localPlayer.getWeaponManager();
     const skill = this.localPlayer.getSkillManager();
     const zone = this.safeZoneManager.getState();
+    this.bulletCollisionTracker.setActive(this.bulletManager.getActiveCount());
+    const bulletStats = this.bulletCollisionTracker.getStats();
 
     return buildGameTextState({
       player: {
@@ -527,8 +562,18 @@ export class GameScene extends Phaser.Scene {
         timeToNextPhase: zone.timeToNextPhase,
         isShrinking: zone.isShrinking,
       },
+      bullet: bulletStats,
       alive: this.alivePlayers,
       total: this.totalPlayers,
+    });
+  }
+
+  private setupBulletCollisions() {
+    if (!this.mapLayer) return;
+    this.physics.add.collider(this.bulletManager.getBullets(), this.mapLayer, (bullet) => {
+      const bulletObj = bullet as Phaser.GameObjects.GameObject;
+      bulletObj.destroy();
+      this.bulletCollisionTracker.recordHit();
     });
   }
 

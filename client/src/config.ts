@@ -1,8 +1,11 @@
 import Phaser from 'phaser';
 import { GAME_CONFIG } from '@shared/constants';
+import { resolveRenderMode } from './utils/render-mode';
+
+const renderMode = resolveRenderMode(import.meta.env.VITE_CAPTURE_CANVAS);
 
 export const phaserConfig: Phaser.Types.Core.GameConfig = {
-  type: Phaser.AUTO,
+  type: renderMode === 'canvas' ? Phaser.CANVAS : Phaser.AUTO,
   parent: 'game-container',
   width: 800,
   height: 600,
@@ -11,13 +14,14 @@ export const phaserConfig: Phaser.Types.Core.GameConfig = {
     pixelArt: true,
     roundPixels: true,
     mipmapFilter: 'NEAREST',
+    preserveDrawingBuffer: import.meta.env.VITE_CAPTURE_CANVAS === 'true',
   },
   backgroundColor: '#1a1a2e',
   physics: {
     default: 'arcade',
     arcade: {
       gravity: { x: 0, y: 0 },
-      debug: import.meta.env.DEV,
+      debug: import.meta.env.VITE_PHYSICS_DEBUG === 'true',
     },
   },
   scale: {

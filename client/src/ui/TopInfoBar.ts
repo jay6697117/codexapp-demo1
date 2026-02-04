@@ -64,4 +64,12 @@ export class TopInfoBar extends Phaser.GameObjects.Container {
     this.border.lineStyle(2, PIXEL_COLORS.panelHighlight, 1);
     this.border.strokeRect(2, 2, this.width - 4, this.height - 4);
   }
+
+  setSize(width: number, height: number) {
+    if (this.width === width && this.height === height) return;
+    this.width = width;
+    this.height = height;
+    this.text.setPosition(12, height / 2);
+    this.drawPanel();
+  }
 }

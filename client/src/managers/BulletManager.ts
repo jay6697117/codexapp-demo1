@@ -37,6 +37,10 @@ export class BulletManager {
     return this.bullets;
   }
 
+  getActiveCount(): number {
+    return this.bullets.countActive(true);
+  }
+
   update() {
     // Group 已配置 runChildUpdate，子弹会自动更新
   }

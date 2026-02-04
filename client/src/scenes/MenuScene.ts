@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { networkManager } from '../network';
 import { RoomListUI, RoomInfo } from '../ui/RoomListUI';
 import { TextureGenerator } from '../utils/TextureGenerator';
+import { shouldAutoStartGame } from '../utils/auto-start';
 
 const CHARACTERS = [
   { id: 'char_punk', name: 'CYBER PUNK' },
@@ -25,6 +26,11 @@ export class MenuScene extends Phaser.Scene {
     TextureGenerator.createTextures(this);
 
     const { width, height } = this.cameras.main;
+
+    if (shouldAutoStartGame(import.meta.env.VITE_AUTO_START_GAME, window.location.search)) {
+      this.scene.start('GameScene', { multiplayer: false });
+      return;
+    }
 
     // 标题
     const title = this.add.text(width / 2, 100, 'PUMPVILLE', {
