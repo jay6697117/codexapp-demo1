@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { CHARACTERS } from '@shared/constants';
 import { HealthBar } from '../ui/HealthBar';
+import { EntityInterpolation } from '../network/EntityInterpolation';
 
 // 角色颜色映射
 const CHARACTER_COLORS: Record<string, number> = {
@@ -23,7 +24,11 @@ export class RemotePlayer extends Phaser.GameObjects.Container {
   public maxHp: number = 100;
   public isAlive: boolean = true;
 
-  // 插值用
+  // 插值系统
+  private interpolation: EntityInterpolation;
+  private useInterpolation: boolean = true;
+
+  // 插值用（备用）
   private targetX: number = 0;
   private targetY: number = 0;
   private targetAngle: number = 0;
@@ -41,6 +46,10 @@ export class RemotePlayer extends Phaser.GameObjects.Container {
     this.targetX = state.x;
     this.targetY = state.y;
     this.targetAngle = state.angle || 0;
+
+    // 初始化插值系统
+    this.interpolation = new EntityInterpolation();
+    this.interpolation.addSnapshot(state.x, state.y, state.angle || 0);
 
     // 获取角色颜色
     const color = CHARACTER_COLORS[this.character] || 0x00ff00;
@@ -78,15 +87,20 @@ export class RemotePlayer extends Phaser.GameObjects.Container {
   }
 
   updateFromState(state: any) {
-    // 设置目标位置用于插值
-    this.targetX = state.x;
-    this.targetY = state.y;
-    this.targetAngle = state.angle || 0;
-
     // 立即更新其他状态
     this.hp = state.hp;
     this.maxHp = state.maxHp;
     this.isAlive = state.isAlive;
+
+    if (this.useInterpolation) {
+      // 添加快照用于插值
+      this.interpolation.addSnapshot(state.x, state.y, state.angle || 0);
+    } else {
+      // 直接设置目标位置用于简单插值
+      this.targetX = state.x;
+      this.targetY = state.y;
+      this.targetAngle = state.angle || 0;
+    }
 
     // 更新血条
     this.healthBar.setHp(this.hp, this.maxHp);
@@ -98,20 +112,53 @@ export class RemotePlayer extends Phaser.GameObjects.Container {
   update(_delta: number) {
     if (!this.isAlive) return;
 
-    // 平滑插值到目标位置
-    const lerpFactor = 0.2;
-    this.x = Phaser.Math.Linear(this.x, this.targetX, lerpFactor);
-    this.y = Phaser.Math.Linear(this.y, this.targetY, lerpFactor);
+    if (this.useInterpolation) {
+      // 使用插值系统获取平滑位置
+      const interpolated = this.interpolation.getInterpolatedPosition();
+      if (interpolated) {
+        this.x = interpolated.x;
+        this.y = interpolated.y;
 
-    // 插值旋转（方向指示器绕中心旋转）
-    const currentAngle = this.directionIndicator.rotation;
-    const angleDiff = Phaser.Math.Angle.Wrap(this.targetAngle - currentAngle);
-    this.directionIndicator.rotation = currentAngle + angleDiff * 0.2;
+        // 插值旋转（方向指示器绕中心旋转）
+        const currentAngle = this.directionIndicator.rotation;
+        const angleDiff = Phaser.Math.Angle.Wrap(interpolated.rotation - currentAngle);
+        this.directionIndicator.rotation = currentAngle + angleDiff * 0.3;
+      }
+    } else {
+      // 备用：简单插值到目标位置
+      const lerpFactor = 0.2;
+      this.x = Phaser.Math.Linear(this.x, this.targetX, lerpFactor);
+      this.y = Phaser.Math.Linear(this.y, this.targetY, lerpFactor);
+
+      // 插值旋转（方向指示器绕中心旋转）
+      const currentAngle = this.directionIndicator.rotation;
+      const angleDiff = Phaser.Math.Angle.Wrap(this.targetAngle - currentAngle);
+      this.directionIndicator.rotation = currentAngle + angleDiff * 0.2;
+    }
 
     // 更新方向指示器位置（绕玩家旋转）
     const indicatorDistance = 20;
     this.directionIndicator.x = Math.cos(this.directionIndicator.rotation) * indicatorDistance;
     this.directionIndicator.y = Math.sin(this.directionIndicator.rotation) * indicatorDistance;
+  }
+
+  /**
+   * 切换插值模式
+   */
+  setInterpolationEnabled(enabled: boolean): void {
+    this.useInterpolation = enabled;
+    if (enabled) {
+      // 切换到插值模式时，添加当前位置作为初始快照
+      this.interpolation.clear();
+      this.interpolation.addSnapshot(this.x, this.y, this.directionIndicator.rotation);
+    }
+  }
+
+  /**
+   * 获取插值系统（用于调试）
+   */
+  getInterpolation(): EntityInterpolation {
+    return this.interpolation;
   }
 
   destroy() {
