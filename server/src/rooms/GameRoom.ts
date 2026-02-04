@@ -1,4 +1,4 @@
-import { Room, Client } from 'colyseus';
+import { Room, Client } from '@colyseus/core';
 import { GameRoomState, PlayerState, ItemState, SafeZoneState } from '../schemas/index.js';
 import { GAME_CONFIG, CHARACTERS, WEAPONS, SAFE_ZONE } from '@pixel-arena/shared';
 
