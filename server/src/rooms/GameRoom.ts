@@ -608,7 +608,7 @@ export class GameRoom extends Room<GameRoomState> {
           Math.pow(item.y - player.y, 2)
         );
 
-        const pickupRadius = 30; // Pickup range
+        const pickupRadius = 50; // Pickup range (increased for better UX)
         if (distance < pickupRadius) {
           this.pickupItem(playerId, itemId, item);
           itemsToRemove.push(itemId);
