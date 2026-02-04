@@ -11,6 +11,7 @@ import { AudioManager } from '../managers/AudioManager';
 import { KillFeed } from '../ui/KillFeed';
 import { GameOverScreen, PlayerResult } from '../ui/GameOverScreen';
 import { Leaderboard, LeaderboardEntry } from '../ui/Leaderboard';
+import { Minimap, MinimapPlayer, MinimapZone } from '../ui/Minimap';
 import { networkManager } from '../network';
 
 export class GameScene extends Phaser.Scene {
@@ -23,6 +24,7 @@ export class GameScene extends Phaser.Scene {
   private killFeed!: KillFeed;
   private gameOverScreen!: GameOverScreen;
   private leaderboard!: Leaderboard;
+  private minimap!: Minimap;
 
   // 多人模式相关
   private remotePlayers: Map<string, RemotePlayer> = new Map();
@@ -132,6 +134,9 @@ export class GameScene extends Phaser.Scene {
 
     // 初始化排行榜
     this.leaderboard = new Leaderboard(this);
+
+    // 初始化小地图
+    this.minimap = new Minimap(this);
 
     // 每秒检查毒圈伤害
     this.zoneDamageTimer = this.time.addEvent({
@@ -318,6 +323,9 @@ export class GameScene extends Phaser.Scene {
     // 更新缩圈系统
     const zoneState = this.safeZoneManager.update();
     this.updateZoneHUD(zoneState);
+
+    // 更新小地图
+    this.updateMinimap();
 
     // 多人模式：更新远程玩家并发送输入
     if (this.isMultiplayer) {
@@ -659,5 +667,43 @@ export class GameScene extends Phaser.Scene {
         this.localPlayer.takeDamage(damage);
       }
     }
+  }
+
+  private updateMinimap() {
+    // Collect player data
+    const players: MinimapPlayer[] = [];
+
+    // Add local player
+    const localPos = this.localPlayer.getPosition();
+    players.push({
+      id: 'local',
+      x: localPos.x,
+      y: localPos.y,
+      isLocal: true,
+      isAlive: this.localPlayer.getIsAlive(),
+    });
+
+    // Add remote players
+    this.remotePlayers.forEach((remotePlayer, sessionId) => {
+      players.push({
+        id: sessionId,
+        x: remotePlayer.x,
+        y: remotePlayer.y,
+        isLocal: false,
+        isAlive: remotePlayer.isAlive,
+      });
+    });
+
+    // Get safe zone data
+    const zoneState = this.safeZoneManager.getState();
+    const zone: MinimapZone = {
+      x: zoneState.x,
+      y: zoneState.y,
+      currentRadius: zoneState.currentRadius,
+      targetRadius: zoneState.targetRadius,
+      isShrinking: zoneState.isShrinking,
+    };
+
+    this.minimap.update(players, zone);
   }
 }
