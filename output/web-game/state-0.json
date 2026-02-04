@@ -1,0 +1,1 @@
+{"mode":"game","coords":"origin top-left","player":{"x":800,"y":600,"hp":100,"maxHp":100},"weapon":{"name":"手枪","ammo":11,"maxAmmo":12},"skill":{"name":"冲刺","cooldownPercent":1,"remainingMs":0,"isActive":false},"zone":{"x":800,"y":600,"currentRadius":1000,"targetRadius":1000,"timeToNextPhase":59356,"isShrinking":false},"alive":1,"total":1}

@@ -10,6 +10,11 @@
 - Phaser Tween 可对对象位置/透明度等进行动画（用于道具悬浮、提示动画等）（context7）。
 - Phaser Tilemap API 支持 `createLayer` 与 `createBlankLayer` 创建图层，适用于从数据或空白层渲染瓦片（web/docs + deepwiki）。
 - UI 设计系统建议：复古像素/赛博风格，字体 Press Start 2P + VT323；可用 CRT 扫描线与霓虹描边等效果，已持久化到 `design-system/pixel-arena/MASTER.md`（ui-ux-pro-max）。
+- Phaser Graphics 文档示例包含 `lineStyle` + `fillStyle` + `fillRect`/`strokeRect` 的基础绘制流程，适合像素 UI 框体绘制（web）。
+- Phaser TweenManager 提供 `this.tweens.add({ targets, duration, ease, ... })` 的标准动画入口，可用于悬浮/提示文字动画（web）。
+- Phaser Graphics 概念文档强调 Graphics 对象在 Canvas/WebGL 下渲染代价较高，静态图形可 `generateTexture` 以提升性能（web）。
+- Phaser Tilemap 是数据容器，真正渲染的是 Tilemap Layers；Tilemap 支持从 2D array/CSV/JSON 等数据源创建（web）。
+- Fontsource 提供 Press Start 2P 的 npm 安装与导入方式，可替代 Google Fonts 引入（web）。
 - 计划要求程序化绘制像素元素（避免外部素材依赖）。
 
 ## Technical Decisions

@@ -1,0 +1,294 @@
+export type PixelPattern = string[];
+
+const EMPTY = '.';
+
+export const CHARACTER_PATTERNS: Record<string, PixelPattern> = {
+  assault: [
+    '................',
+    '....HHHHHHHH....',
+    '....HBBBBBBH....',
+    '....HBBBBBBH....',
+    '....HHHHHHHH....',
+    '...BBBBBBBBBB...',
+    '...BBBAAABBBB...',
+    '...BBBWWBBBBB...',
+    '...BBBAAABBBB...',
+    '...BBBBBBBBBB...',
+    '....BB..BB......',
+    '....BB..BB......',
+    '...BB....BB.....',
+    '...BB....BB.....',
+    '...BB....BB.....',
+    '................',
+  ],
+  ranger: [
+    '................',
+    '....CCCCCCCC....',
+    '....CBBBBBBC....',
+    '....CBBBBBBC....',
+    '....CCCCCCCC....',
+    '...CCBBBBBBCC...',
+    '...CBBBWBBBCC...',
+    '...CBBBWBBBCC...',
+    '...CCBBBBBBCC...',
+    '....CC..CC......',
+    '...CC....CC.....',
+    '...CC....CC.....',
+    '...CC....CC.....',
+    '....C....C......',
+    '....C....C......',
+    '................',
+  ],
+  tank: [
+    '................',
+    '....AAAAAAAA....',
+    '....AABBBBAA....',
+    '....AABBBBAA....',
+    '...AAABBBBBAA...',
+    '...AAABSSBBAA...',
+    '...AAABSSBBAA...',
+    '...AAABBBBBAA...',
+    '...AABBBBBBAA...',
+    '....AABBBBAA....',
+    '....AAB..BAA....',
+    '...AAA....AAA...',
+    '...AAA....AAA...',
+    '...AAA....AAA...',
+    '................',
+    '................',
+  ],
+  medic: [
+    '................',
+    '....MMMMMMMM....',
+    '....MBBMMBBM....',
+    '....MBBBBBBM....',
+    '....MMMMMMMM....',
+    '...BBBMBBMBBB...',
+    '...BBBMBBMBBB...',
+    '...BBMMMMMBBB...',
+    '...BBBMBBMBBB...',
+    '...BBBBBBBBBB...',
+    '....BB..BB......',
+    '...PBB..BBP.....',
+    '...PBB..BBP.....',
+    '...PBB..BBP.....',
+    '....BB..BB......',
+    '................',
+  ],
+};
+
+export const CHARACTER_PALETTES: Record<string, Record<string, number>> = {
+  assault: {
+    H: 0x3f7d3a,
+    B: 0x8b8c7a,
+    A: 0x556b2f,
+    W: 0x1f2937,
+  },
+  ranger: {
+    C: 0x0f172a,
+    B: 0x1e3a8a,
+    W: 0x0f172a,
+  },
+  tank: {
+    A: 0x9ca3af,
+    B: 0x7c2d12,
+    S: 0xb91c1c,
+  },
+  medic: {
+    M: 0xf8fafc,
+    B: 0x22c55e,
+    P: 0x14532d,
+  },
+};
+
+export const ITEM_PATTERNS: Record<string, PixelPattern> = {
+  smg: [
+    '................',
+    '................',
+    '....XXXXXX......',
+    '....XXXXXX......',
+    '....XXXXXXX.....',
+    '....XX..XXX.....',
+    '....XX..XXX.....',
+    '....XX..XX......',
+    '....XX..XX......',
+    '....XX..........',
+    '....XXX.........',
+    '.....XX.........',
+    '................',
+    '................',
+    '................',
+    '................',
+  ],
+  rifle: [
+    '................',
+    '................',
+    '...XXXXXXXXXX...',
+    '...XXXXXXXXXX...',
+    '...XXXX..XXXX...',
+    '...XXXX..XXXX...',
+    '...XXXX..XXXX...',
+    '...XX...........',
+    '...XX...........',
+    '...XX...........',
+    '...XX...........',
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+  ],
+  shotgun: [
+    '................',
+    '................',
+    '...XXXXXXXX.....',
+    '...XXXXXXXX.....',
+    '...XX..XX.......',
+    '...XX..XX.......',
+    '...XX..XX.......',
+    '...XX..XX.......',
+    '...XX..XX.......',
+    '...XX..XX.......',
+    '...XX...........',
+    '...XX...........',
+    '................',
+    '................',
+    '................',
+    '................',
+  ],
+  dash: [
+    '................',
+    '......XX........',
+    '.....XXX........',
+    '....XXXX........',
+    '...XX.XX........',
+    '..XX..XX........',
+    '.XX...XX........',
+    'XX....XX........',
+    'XX....XX........',
+    'XX....XX........',
+    '.XX...XX........',
+    '..XX..XX........',
+    '...XX.XX........',
+    '....XXXX........',
+    '.....XXX........',
+    '......XX........',
+  ],
+  shield: [
+    '......XXXX......',
+    '.....XXXXXX.....',
+    '....XXXXXXXX....',
+    '...XXXXXXXXXX...',
+    '...XXX..XXX.....',
+    '...XXX..XXX.....',
+    '...XXX..XXX.....',
+    '...XXX..XXX.....',
+    '...XXX..XXX.....',
+    '...XXX..XXX.....',
+    '...XXX..XXX.....',
+    '....XXXXXXX.....',
+    '.....XXXXXX.....',
+    '......XXXX......',
+    '................',
+    '................',
+  ],
+  backflip: [
+    '................',
+    '....XXXX........',
+    '...XX..XX.......',
+    '..XX....XX......',
+    '.XX......XX.....',
+    '.XX......XX.....',
+    '.XX......XX.....',
+    '..XX....XX......',
+    '...XX..XX.......',
+    '....XXXX........',
+    '.....XX.........',
+    '....XX..........',
+    '...XX...........',
+    '..XX............',
+    '.XX.............',
+    '................',
+  ],
+  healAura: [
+    '................',
+    '......XX........',
+    '......XX........',
+    '......XX........',
+    '..XXXXXXXXXX....',
+    '..XXXXXXXXXX....',
+    '..XXXXXXXXXX....',
+    '......XX........',
+    '......XX........',
+    '......XX........',
+    '......XX........',
+    '......XX........',
+    '................',
+    '................',
+    '................',
+    '................',
+  ],
+};
+
+export const ITEM_PALETTES: Record<string, Record<string, number>> = {
+  smg: { X: 0x3b82f6 },
+  rifle: { X: 0xf97316 },
+  shotgun: { X: 0xef4444 },
+  dash: { X: 0x22c55e },
+  shield: { X: 0x38bdf8 },
+  backflip: { X: 0xa855f7 },
+  healAura: { X: 0x14b8a6 },
+};
+
+function makeCheckerPattern(a: string, b: string): PixelPattern {
+  const rows: string[] = [];
+  for (let y = 0; y < 16; y++) {
+    let row = '';
+    for (let x = 0; x < 16; x++) {
+      row += (x + y) % 2 === 0 ? a : b;
+    }
+    rows.push(row);
+  }
+  return rows;
+}
+
+export const TILE_PATTERNS: Record<string, PixelPattern> = {
+  grass: makeCheckerPattern('g', 'G'),
+  dirt: makeCheckerPattern('d', 'D'),
+  stone: makeCheckerPattern('s', 'S'),
+  water: makeCheckerPattern('w', 'W'),
+  sand: makeCheckerPattern('a', 'A'),
+  lava: makeCheckerPattern('l', 'L'),
+  ground: makeCheckerPattern('d', 'D'),
+  wall: makeCheckerPattern('s', 'S'),
+};
+
+export const TILE_PALETTES: Record<string, Record<string, number>> = {
+  grass: { g: 0x2f7d32, G: 0x3a9d3a },
+  dirt: { d: 0x8b5a2b, D: 0x7a4b22 },
+  stone: { s: 0x6b7280, S: 0x4b5563 },
+  water: { w: 0x2563eb, W: 0x1d4ed8 },
+  sand: { a: 0xd6b981, A: 0xc7a76d },
+  lava: { l: 0xdc2626, L: 0xf97316 },
+  ground: { d: 0x8b5a2b, D: 0x7a4b22 },
+  wall: { s: 0x6b7280, S: 0x4b5563 },
+};
+
+export function renderPatternToGraphics(
+  graphics: { fillStyle: (color: number, alpha?: number) => void; fillRect: (x: number, y: number, w: number, h: number) => void },
+  pattern: PixelPattern,
+  palette: Record<string, number>,
+  pixelSize: number
+) {
+  for (let y = 0; y < pattern.length; y++) {
+    const row = pattern[y];
+    for (let x = 0; x < row.length; x++) {
+      const key = row[x];
+      if (key === EMPTY) continue;
+      const color = palette[key];
+      if (color === undefined) continue;
+      graphics.fillStyle(color, 1);
+      graphics.fillRect(x * pixelSize, y * pixelSize, pixelSize, pixelSize);
+    }
+  }
+}
