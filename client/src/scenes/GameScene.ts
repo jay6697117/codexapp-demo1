@@ -21,6 +21,7 @@ import { networkManager } from '../network';
 import { generateTilemap } from '@pixel-arena/shared';
 import { buildGameTextState } from '../utils/game-text-state';
 import { ParticleManager } from '../effects/ParticleManager';
+import { getCollidableTileIds } from '../utils/collision-tiles';
 
 export class GameScene extends Phaser.Scene {
   public localPlayer!: Player;
@@ -34,6 +35,7 @@ export class GameScene extends Phaser.Scene {
   private leaderboard!: Leaderboard;
   private minimap!: Minimap;
   private pickupNotification!: PickupNotification;
+  private mapLayer?: Phaser.Tilemaps.TilemapLayer;
 
   // 多人模式相关
   private remotePlayers: Map<string, RemotePlayer> = new Map();
@@ -80,6 +82,11 @@ export class GameScene extends Phaser.Scene {
       'assault',
       true
     );
+
+    // 单机模式下依赖客户端物理碰撞
+    if (this.mapLayer) {
+      this.physics.add.collider(this.localPlayer, this.mapLayer);
+    }
 
     // 设置相机跟随玩家
     this.cameras.main.startFollow(this.localPlayer, true, 0.1, 0.1);
@@ -402,7 +409,10 @@ export class GameScene extends Phaser.Scene {
     const tileset = map.addTilesetImage('tileset_pixel', 'tileset_pixel', tileSize, tileSize, 0, 0);
     if (!tileset) return;
 
-    map.createLayer(0, tileset, 0, 0);
+    const layer = map.createLayer(0, tileset, 0, 0);
+    if (!layer) return;
+    layer.setCollision(getCollidableTileIds());
+    this.mapLayer = layer;
   }
 
   private createAmmoHUD() {
