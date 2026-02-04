@@ -7,6 +7,7 @@ import { InputManager } from '../input/InputManager';
 import { BulletManager } from '../managers/BulletManager';
 import { ItemManager } from '../managers/ItemManager';
 import { SafeZoneManager, ZoneState } from '../managers/SafeZoneManager';
+import { KillFeed } from '../ui/KillFeed';
 import { networkManager } from '../network';
 
 export class GameScene extends Phaser.Scene {
@@ -15,6 +16,7 @@ export class GameScene extends Phaser.Scene {
   private bulletManager!: BulletManager;
   private itemManager!: ItemManager;
   private safeZoneManager!: SafeZoneManager;
+  private killFeed!: KillFeed;
 
   // 多人模式相关
   private remotePlayers: Map<string, RemotePlayer> = new Map();
@@ -113,6 +115,9 @@ export class GameScene extends Phaser.Scene {
     // 创建缩圈 HUD
     this.createZoneHUD();
 
+    // 初始化击杀信息显示
+    this.killFeed = new KillFeed(this);
+
     // 每秒检查毒圈伤害
     this.zoneDamageTimer = this.time.addEvent({
       delay: 1000,
@@ -168,6 +173,27 @@ export class GameScene extends Phaser.Scene {
       if (data.playerId === networkManager.getSessionId()) return;
       // 播放远程玩家技能效果（可扩展）
       console.log('Remote player used skill:', data);
+    });
+
+    // 监听击杀事件
+    networkManager.on('kill', (data: { killerId: string; victimId: string; victimName: string }) => {
+      const myId = networkManager.getSessionId();
+
+      if (data.killerId === 'zone') {
+        // 毒圈击杀
+        this.killFeed.addZoneKill(data.victimName, data.victimId === myId);
+      } else {
+        // 玩家击杀
+        const room = networkManager.getRoom();
+        const killer = room?.state.players.get(data.killerId);
+        const killerName = killer?.name || 'Unknown';
+        this.killFeed.addKill(killerName, data.victimName, data.killerId === myId, data.victimId === myId);
+      }
+
+      // 如果本地玩家被击杀
+      if (data.victimId === myId) {
+        this.localPlayer.die();
+      }
     });
 
     // 初始化已存在的玩家
