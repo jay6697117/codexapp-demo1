@@ -12,8 +12,14 @@ import { KillFeed } from '../ui/KillFeed';
 import { GameOverScreen, PlayerResult } from '../ui/GameOverScreen';
 import { Leaderboard, LeaderboardEntry } from '../ui/Leaderboard';
 import { Minimap, MinimapPlayer, MinimapZone } from '../ui/Minimap';
+import { HealthBar } from '../ui/HealthBar';
 import { PickupNotification } from '../ui/PickupNotification';
+import { AmmoBox } from '../ui/AmmoBox';
+import { SkillBar } from '../ui/SkillBar';
+import { TopInfoBar } from '../ui/TopInfoBar';
 import { networkManager } from '../network';
+import { generateTilemap } from '../utils/tilemap-generator';
+import { buildGameTextState } from '../utils/game-text-state';
 
 export class GameScene extends Phaser.Scene {
   public localPlayer!: Player;
@@ -33,21 +39,19 @@ export class GameScene extends Phaser.Scene {
   private isMultiplayer: boolean = false;
 
   // HUD 元素
-  private weaponText!: Phaser.GameObjects.Text;
-  private ammoText!: Phaser.GameObjects.Text;
-  private reloadText!: Phaser.GameObjects.Text;
+  private ammoBox!: AmmoBox;
 
   // 技能 HUD 元素
-  private skillNameText!: Phaser.GameObjects.Text;
-  private skillCooldownBar!: Phaser.GameObjects.Graphics;
-  private skillReadyText!: Phaser.GameObjects.Text;
+  private skillBar!: SkillBar;
 
   // HP HUD 元素
-  private hpText!: Phaser.GameObjects.Text;
+  private hpBar!: HealthBar;
 
   // 缩圈 HUD 元素
-  private zoneHudText!: Phaser.GameObjects.Text;
+  private topInfoBar!: TopInfoBar;
   private zoneDamageTimer!: Phaser.Time.TimerEvent;
+  private alivePlayers: number = 1;
+  private totalPlayers: number = 1;
 
   constructor() {
     super({ key: 'GameScene' });
@@ -143,6 +147,8 @@ export class GameScene extends Phaser.Scene {
 
     // 初始化拾取提示
     this.pickupNotification = new PickupNotification(this);
+
+    this.registerTestHooks();
 
     // 每秒检查毒圈伤害
     this.zoneDamageTimer = this.time.addEvent({
@@ -305,6 +311,8 @@ export class GameScene extends Phaser.Scene {
     });
 
     this.leaderboard.update(entries, alivePlayers, state.players.size);
+    this.alivePlayers = alivePlayers;
+    this.totalPlayers = state.players.size;
   }
 
   update(time: number, delta: number) {
@@ -354,312 +362,138 @@ export class GameScene extends Phaser.Scene {
     const mapWidth = Math.floor(GAME_CONFIG.MAP_WIDTH / tileSize);
     const mapHeight = Math.floor(GAME_CONFIG.MAP_HEIGHT / tileSize);
 
-    // 绘制地面层
-    for (let y = 0; y < mapHeight; y++) {
-      for (let x = 0; x < mapWidth; x++) {
-        this.add.image(
-          x * tileSize + tileSize / 2,
-          y * tileSize + tileSize / 2,
-          'tile_ground'
-        );
-      }
-    }
+    const data = generateTilemap(mapWidth, mapHeight, 42);
+    const map = this.make.tilemap({ data, tileWidth: tileSize, tileHeight: tileSize });
+    const tileset = map.addTilesetImage('tileset_pixel', 'tileset_pixel', tileSize, tileSize, 0, 0);
+    if (!tileset) return;
 
-    // 绘制边界墙
-    for (let x = 0; x < mapWidth; x++) {
-      // 顶部墙
-      this.add.image(x * tileSize + tileSize / 2, tileSize / 2, 'tile_wall');
-      // 底部墙
-      this.add.image(
-        x * tileSize + tileSize / 2,
-        (mapHeight - 1) * tileSize + tileSize / 2,
-        'tile_wall'
-      );
-    }
-    for (let y = 0; y < mapHeight; y++) {
-      // 左侧墙
-      this.add.image(tileSize / 2, y * tileSize + tileSize / 2, 'tile_wall');
-      // 右侧墙
-      this.add.image(
-        (mapWidth - 1) * tileSize + tileSize / 2,
-        y * tileSize + tileSize / 2,
-        'tile_wall'
-      );
-    }
-
-    // 添加随机障碍物（墙壁）
-    const obstacleCount = 40;
-    for (let i = 0; i < obstacleCount; i++) {
-      const x = Phaser.Math.Between(3, mapWidth - 4);
-      const y = Phaser.Math.Between(3, mapHeight - 4);
-      // 随机生成 1-3 个连续墙壁
-      const length = Phaser.Math.Between(1, 3);
-      const horizontal = Math.random() > 0.5;
-
-      for (let j = 0; j < length; j++) {
-        const wx = horizontal ? x + j : x;
-        const wy = horizontal ? y : y + j;
-        if (wx < mapWidth - 1 && wy < mapHeight - 1) {
-          this.add.image(
-            wx * tileSize + tileSize / 2,
-            wy * tileSize + tileSize / 2,
-            'tile_wall'
-          );
-        }
-      }
-    }
-
-    // 添加水域区域
-    this.createWaterArea(5, 5, 6, 4);
-    this.createWaterArea(35, 20, 5, 5);
-
-    // 添加草丛区域
-    this.createGrassArea(25, 8, 8, 5);
-    this.createGrassArea(10, 25, 6, 4);
-
-    // 添加岩浆区域
-    this.createLavaArea(40, 30, 4, 3);
-  }
-
-  private createWaterArea(startX: number, startY: number, width: number, height: number) {
-    const tileSize = GAME_CONFIG.TILE_SIZE;
-    for (let dx = 0; dx < width; dx++) {
-      for (let dy = 0; dy < height; dy++) {
-        this.add.image(
-          (startX + dx) * tileSize + tileSize / 2,
-          (startY + dy) * tileSize + tileSize / 2,
-          'tile_water'
-        );
-      }
-    }
-  }
-
-  private createGrassArea(startX: number, startY: number, width: number, height: number) {
-    const tileSize = GAME_CONFIG.TILE_SIZE;
-    for (let dx = 0; dx < width; dx++) {
-      for (let dy = 0; dy < height; dy++) {
-        this.add.image(
-          (startX + dx) * tileSize + tileSize / 2,
-          (startY + dy) * tileSize + tileSize / 2,
-          'tile_grass'
-        );
-      }
-    }
-  }
-
-  private createLavaArea(startX: number, startY: number, width: number, height: number) {
-    const tileSize = GAME_CONFIG.TILE_SIZE;
-    for (let dx = 0; dx < width; dx++) {
-      for (let dy = 0; dy < height; dy++) {
-        this.add.image(
-          (startX + dx) * tileSize + tileSize / 2,
-          (startY + dy) * tileSize + tileSize / 2,
-          'tile_lava'
-        );
-      }
-    }
+    map.createLayer(0, tileset, 0, 0);
   }
 
   private createAmmoHUD() {
     const screenWidth = this.cameras.main.width;
     const screenHeight = this.cameras.main.height;
 
-    // 武器名称
-    this.weaponText = this.add.text(screenWidth - 150, screenHeight - 80, '', {
-      fontSize: '16px',
-      color: '#ffffff',
-      fontStyle: 'bold',
-    });
-    this.weaponText.setScrollFactor(0);
-    this.weaponText.setDepth(1000);
-
-    // 弹药数量
-    this.ammoText = this.add.text(screenWidth - 150, screenHeight - 55, '', {
-      fontSize: '24px',
-      color: '#ffff00',
-      fontStyle: 'bold',
-    });
-    this.ammoText.setScrollFactor(0);
-    this.ammoText.setDepth(1000);
-
-    // 换弹提示
-    this.reloadText = this.add.text(screenWidth - 150, screenHeight - 25, '', {
-      fontSize: '14px',
-      color: '#ff6600',
-    });
-    this.reloadText.setScrollFactor(0);
-    this.reloadText.setDepth(1000);
+    const width = 180;
+    const height = 70;
+    this.ammoBox = new AmmoBox(this, screenWidth - width - 16, screenHeight - height - 16, width, height);
+    this.ammoBox.setScrollFactor(0);
+    this.ammoBox.setDepth(1000);
   }
 
   private updateAmmoHUD() {
     const weaponManager = this.localPlayer.getWeaponManager();
-
-    // 更新武器名称
-    this.weaponText.setText(weaponManager.getWeaponName());
-
-    // 更新弹药数量
     const ammo = weaponManager.getAmmo();
     const maxAmmo = weaponManager.getMaxAmmo();
-    this.ammoText.setText(`${ammo} / ${maxAmmo}`);
 
-    // 弹药颜色：低弹药时变红
-    if (ammo <= Math.ceil(maxAmmo * 0.25)) {
-      this.ammoText.setColor('#ff0000');
-    } else if (ammo <= Math.ceil(maxAmmo * 0.5)) {
-      this.ammoText.setColor('#ffaa00');
-    } else {
-      this.ammoText.setColor('#ffff00');
-    }
-
-    // 更新换弹提示
-    if (weaponManager.isCurrentlyReloading()) {
-      const progress = Math.floor(weaponManager.getReloadProgress() * 100);
-      this.reloadText.setText(`换弹中... ${progress}%`);
-      this.reloadText.setVisible(true);
-    } else if (ammo === 0) {
-      this.reloadText.setText('按 R 换弹');
-      this.reloadText.setVisible(true);
-    } else {
-      this.reloadText.setVisible(false);
-    }
+    this.ammoBox.updateAmmo(
+      weaponManager.getWeaponName(),
+      ammo,
+      maxAmmo,
+      weaponManager.isCurrentlyReloading(),
+      weaponManager.getReloadProgress()
+    );
   }
 
   private createSkillHUD() {
     const screenHeight = this.cameras.main.height;
-
-    // 技能名称
-    this.skillNameText = this.add.text(20, screenHeight - 80, '', {
-      fontSize: '16px',
-      color: '#ffffff',
-      fontStyle: 'bold',
-    });
-    this.skillNameText.setScrollFactor(0);
-    this.skillNameText.setDepth(1000);
-
-    // 技能冷却进度条背景和前景
-    this.skillCooldownBar = this.add.graphics();
-    this.skillCooldownBar.setScrollFactor(0);
-    this.skillCooldownBar.setDepth(1000);
-
-    // 技能就绪提示
-    this.skillReadyText = this.add.text(20, screenHeight - 25, '', {
-      fontSize: '14px',
-      color: '#00ff00',
-    });
-    this.skillReadyText.setScrollFactor(0);
-    this.skillReadyText.setDepth(1000);
+    const width = 160;
+    const height = 70;
+    this.skillBar = new SkillBar(this, 16, screenHeight - height - 16, width, height);
+    this.skillBar.setScrollFactor(0);
+    this.skillBar.setDepth(1000);
   }
 
   private updateSkillHUD() {
     const skillManager = this.localPlayer.getSkillManager();
-    const screenHeight = this.cameras.main.height;
-
-    // 更新技能名称
     const skillName = skillManager.getSkillName();
-    this.skillNameText.setText(`[Q] ${skillName}`);
-
-    // 更新冷却进度条
     const cooldownPercent = skillManager.getCooldownPercent();
-    const barWidth = 100;
-    const barHeight = 12;
-    const barX = 20;
-    const barY = screenHeight - 55;
-
-    this.skillCooldownBar.clear();
-
-    // 背景条（灰色）
-    this.skillCooldownBar.fillStyle(0x333333, 1);
-    this.skillCooldownBar.fillRect(barX, barY, barWidth, barHeight);
-
-    // 进度条（根据状态变色）
-    if (cooldownPercent >= 1) {
-      // 就绪状态：绿色
-      this.skillCooldownBar.fillStyle(0x00ff00, 1);
-    } else if (skillManager.isSkillActive()) {
-      // 激活中：蓝色
-      this.skillCooldownBar.fillStyle(0x0088ff, 1);
-    } else {
-      // 冷却中：橙色
-      this.skillCooldownBar.fillStyle(0xff6600, 1);
-    }
-    this.skillCooldownBar.fillRect(barX, barY, barWidth * cooldownPercent, barHeight);
-
-    // 边框
-    this.skillCooldownBar.lineStyle(2, 0xffffff, 0.8);
-    this.skillCooldownBar.strokeRect(barX, barY, barWidth, barHeight);
-
-    // 更新就绪提示
-    if (skillManager.canUseSkill()) {
-      this.skillReadyText.setText('就绪');
-      this.skillReadyText.setColor('#00ff00');
-    } else if (skillManager.isSkillActive()) {
-      this.skillReadyText.setText('激活中');
-      this.skillReadyText.setColor('#0088ff');
-    } else {
-      const remaining = Math.ceil(skillManager.getCooldownRemaining() / 1000);
-      this.skillReadyText.setText(`冷却中 ${remaining}s`);
-      this.skillReadyText.setColor('#ff6600');
-    }
+    const remaining = skillManager.getCooldownRemaining();
+    this.skillBar.updateSkill(skillName, cooldownPercent, skillManager.isSkillActive(), remaining);
   }
 
   private createHpHUD() {
-    this.hpText = this.add.text(10, 50, '', {
-      fontSize: '16px',
-      color: '#ffffff',
-      backgroundColor: '#000000aa',
-      padding: { x: 8, y: 4 },
+    const maxHp = this.localPlayer.getMaxHp();
+    this.hpBar = new HealthBar(this, 110, 24, 160, 16, maxHp, {
+      showIcon: true,
+      showText: true,
     });
-    this.hpText.setScrollFactor(0);
-    this.hpText.setDepth(1000);
+    this.hpBar.setScrollFactor(0);
+    this.hpBar.setDepth(1000);
   }
 
   private updateHpHUD() {
     const hp = this.localPlayer.getHp();
     const maxHp = this.localPlayer.getMaxHp();
-    this.hpText.setText(`HP: ${hp}/${maxHp}`);
-
-    // 根据血量百分比变色
-    const percent = hp / maxHp;
-    if (percent > 0.6) {
-      this.hpText.setColor('#00ff00');
-    } else if (percent > 0.3) {
-      this.hpText.setColor('#ffff00');
-    } else {
-      this.hpText.setColor('#ff0000');
-    }
+    this.hpBar.setHp(hp, maxHp);
   }
 
   private createZoneHUD() {
     const screenWidth = this.cameras.main.width;
-
-    this.zoneHudText = this.add.text(screenWidth - 10, 10, '', {
-      fontSize: '14px',
-      color: '#ffffff',
-      backgroundColor: '#000000aa',
-      padding: { x: 8, y: 4 },
-    });
-    this.zoneHudText.setOrigin(1, 0);
-    this.zoneHudText.setScrollFactor(0);
-    this.zoneHudText.setDepth(1000);
+    const width = 300;
+    const height = 36;
+    this.topInfoBar = new TopInfoBar(this, screenWidth - width - 16, 16, width, height);
+    this.topInfoBar.setScrollFactor(0);
+    this.topInfoBar.setDepth(1000);
   }
 
   private updateZoneHUD(state: ZoneState) {
-    const phaseText = `阶段 ${state.phase + 1}/5`;
-    const damageText = state.damage > 0 ? `伤害: ${state.damage}/秒` : '安全';
-    const timeText = state.timeToNextPhase > 0
-      ? `下次缩圈: ${Math.ceil(state.timeToNextPhase / 1000)}秒`
-      : '最终阶段';
-    const shrinkText = state.isShrinking ? ' [缩圈中]' : '';
+    this.topInfoBar.updateInfo(this.alivePlayers, this.totalPlayers, state.timeToNextPhase, state.isShrinking);
+  }
 
-    this.zoneHudText.setText(`${phaseText}\n${damageText}\n${timeText}${shrinkText}`);
+  private registerTestHooks() {
+    const win = window as unknown as {
+      render_game_to_text?: () => string;
+      advanceTime?: (ms: number) => void;
+    };
+    win.render_game_to_text = () => this.renderGameToText();
+    win.advanceTime = (ms: number) => this.advanceTime(ms);
+  }
 
-    // 根据状态变色
-    if (state.isShrinking) {
-      this.zoneHudText.setColor('#ff6600');
-    } else if (state.damage > 0) {
-      this.zoneHudText.setColor('#ffaa00');
-    } else {
-      this.zoneHudText.setColor('#ffffff');
+  private renderGameToText(): string {
+    const pos = this.localPlayer.getPosition();
+    const weapon = this.localPlayer.getWeaponManager();
+    const skill = this.localPlayer.getSkillManager();
+    const zone = this.safeZoneManager.getState();
+
+    return buildGameTextState({
+      player: {
+        x: pos.x,
+        y: pos.y,
+        hp: this.localPlayer.getHp(),
+        maxHp: this.localPlayer.getMaxHp(),
+      },
+      weapon: {
+        name: weapon.getWeaponName(),
+        ammo: weapon.getAmmo(),
+        maxAmmo: weapon.getMaxAmmo(),
+      },
+      skill: {
+        name: skill.getSkillName(),
+        cooldownPercent: skill.getCooldownPercent(),
+        remainingMs: skill.getCooldownRemaining(),
+        isActive: skill.isSkillActive(),
+      },
+      zone: {
+        x: zone.x,
+        y: zone.y,
+        currentRadius: zone.currentRadius,
+        targetRadius: zone.targetRadius,
+        timeToNextPhase: zone.timeToNextPhase,
+        isShrinking: zone.isShrinking,
+      },
+      alive: this.alivePlayers,
+      total: this.totalPlayers,
+    });
+  }
+
+  private advanceTime(ms: number) {
+    if (!this.scene.isActive()) return;
+    const step = 1000 / 60;
+    const iterations = Math.max(1, Math.round(ms / step));
+    for (let i = 0; i < iterations; i++) {
+      this.physics.world.step(step / 1000);
+      this.update(this.time.now, step);
     }
   }
 

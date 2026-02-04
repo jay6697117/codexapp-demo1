@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { PIXEL_COLORS, getPixelTextStyle } from '../ui/pixel-ui';
 
 export type ItemType = 'weapon' | 'skill';
 
@@ -28,17 +29,16 @@ export class Item extends Phaser.GameObjects.Container {
     this.itemType = config.type;
     this.subType = config.subType;
 
-    // 创建道具精灵
-    this.sprite = scene.add.image(0, 0, 'item');
+    const textureKey = `item_${this.subType}`;
+    this.sprite = scene.add.image(0, 0, textureKey);
+    this.sprite.setDisplaySize(16, 16);
     this.sprite.setTint(this.getItemColor());
     this.add(this.sprite);
 
     // 创建标签
-    this.label = scene.add.text(0, 18, this.getDisplayName(), {
-      fontSize: '10px',
-      color: '#ffffff',
+    this.label = scene.add.text(0, 14, this.getDisplayName(), getPixelTextStyle(8, PIXEL_COLORS.textPrimary, {
       align: 'center',
-    });
+    }));
     this.label.setOrigin(0.5);
     this.add(this.label);
 
@@ -47,8 +47,9 @@ export class Item extends Phaser.GameObjects.Container {
     scene.physics.add.existing(this, true); // static body
 
     this.bodyPhysics = this.body as Phaser.Physics.Arcade.Body;
-    this.bodyPhysics.setSize(24, 24);
-    this.bodyPhysics.setOffset(-12, -12);
+    const size = 16;
+    this.bodyPhysics.setSize(size, size);
+    this.bodyPhysics.setOffset(-size / 2, -size / 2);
 
     // 添加发光动画
     this.addGlowEffect();
@@ -120,10 +121,12 @@ export class Item extends Phaser.GameObjects.Container {
     const color = this.getItemColor();
 
     // 像素风格发光效果
+    const glowSize = 24;
+    const outerSize = 30;
     this.glowGraphics.fillStyle(color, 0.3);
-    this.glowGraphics.fillRect(this.x - 14, this.y - 14, 28, 28);
+    this.glowGraphics.fillRect(this.x - glowSize / 2, this.y - glowSize / 2, glowSize, glowSize);
     this.glowGraphics.fillStyle(color, 0.15);
-    this.glowGraphics.fillRect(this.x - 18, this.y - 18, 36, 36);
+    this.glowGraphics.fillRect(this.x - outerSize / 2, this.y - outerSize / 2, outerSize, outerSize);
   }
 
   update() {

@@ -1,4 +1,13 @@
 import Phaser from 'phaser';
+import {
+  CHARACTER_PATTERNS,
+  CHARACTER_PALETTES,
+  ITEM_PATTERNS,
+  ITEM_PALETTES,
+  TILE_PATTERNS,
+  TILE_PALETTES,
+  renderPatternToGraphics,
+} from '../utils/pixel-patterns';
 
 export class BootScene extends Phaser.Scene {
   private loadingText!: Phaser.GameObjects.Text;
@@ -63,59 +72,53 @@ export class BootScene extends Phaser.Scene {
   }
 
   private createPlaceholderAssets() {
-    // 生成玩家精灵占位符 (32x32 彩色方块)
-    const playerColors: Record<string, number> = {
-      assault: 0x00ff00,
-      tank: 0x0000ff,
-      ranger: 0xff00ff,
-      medic: 0x00ffff,
-    };
-
-    Object.entries(playerColors).forEach(([name, color]) => {
+    Object.entries(CHARACTER_PATTERNS).forEach(([name, pattern]) => {
+      const palette = CHARACTER_PALETTES[name] || {};
       const graphics = this.make.graphics({ x: 0, y: 0 });
-      graphics.fillStyle(color, 1);
-      graphics.fillRect(0, 0, 32, 32);
-      // 添加边框使角色更明显
-      graphics.lineStyle(2, 0xffffff, 1);
-      graphics.strokeRect(0, 0, 32, 32);
+      renderPatternToGraphics(graphics, pattern, palette, 2);
       graphics.generateTexture(`player_${name}`, 32, 32);
       graphics.destroy();
     });
 
-    // 生成子弹占位符 (8x8 黄色方块)
     const bulletGraphics = this.make.graphics({ x: 0, y: 0 });
-    bulletGraphics.fillStyle(0xffff00, 1);
+    bulletGraphics.fillStyle(0xfacc15, 1);
     bulletGraphics.fillRect(0, 0, 8, 8);
     bulletGraphics.generateTexture('bullet', 8, 8);
     bulletGraphics.destroy();
 
-    // 生成道具占位符 (24x24 白色方块)
-    const itemGraphics = this.make.graphics({ x: 0, y: 0 });
-    itemGraphics.fillStyle(0xffffff, 1);
-    itemGraphics.fillRect(0, 0, 24, 24);
-    itemGraphics.lineStyle(2, 0xffff00, 1);
-    itemGraphics.strokeRect(0, 0, 24, 24);
-    itemGraphics.generateTexture('item', 24, 24);
-    itemGraphics.destroy();
+    Object.entries(ITEM_PATTERNS).forEach(([name, pattern]) => {
+      const palette = ITEM_PALETTES[name] || {};
+      const graphics = this.make.graphics({ x: 0, y: 0 });
+      renderPatternToGraphics(graphics, pattern, palette, 1);
+      graphics.generateTexture(`item_${name}`, 16, 16);
+      graphics.destroy();
+    });
 
-    // 生成地图瓦片占位符
-    const tileColors: Record<string, number> = {
-      ground: 0x3d3d3d,
-      wall: 0x666666,
-      water: 0x4444ff,
-      grass: 0x228b22,
-      lava: 0xff4500,
+    const tileMappings: Record<string, string> = {
+      ground: 'ground',
+      wall: 'wall',
+      water: 'water',
+      grass: 'grass',
+      lava: 'sand',
     };
 
-    Object.entries(tileColors).forEach(([name, color]) => {
+    Object.entries(tileMappings).forEach(([name, patternKey]) => {
+      const pattern = TILE_PATTERNS[patternKey];
+      const palette = TILE_PALETTES[patternKey] || {};
       const graphics = this.make.graphics({ x: 0, y: 0 });
-      graphics.fillStyle(color, 1);
-      graphics.fillRect(0, 0, 32, 32);
-      // 添加网格线
-      graphics.lineStyle(1, 0x000000, 0.3);
-      graphics.strokeRect(0, 0, 32, 32);
+      renderPatternToGraphics(graphics, pattern, palette, 2);
       graphics.generateTexture(`tile_${name}`, 32, 32);
       graphics.destroy();
     });
+
+    const tileKeys = ['tile_ground', 'tile_wall', 'tile_water', 'tile_grass', 'tile_lava'];
+    const tileSize = 32;
+    const tilesetTexture = this.textures.createCanvas('tileset_pixel', tileKeys.length * tileSize, tileSize);
+    const ctx = tilesetTexture.getContext();
+    tileKeys.forEach((key, index) => {
+      const source = this.textures.get(key).getSourceImage() as HTMLImageElement | HTMLCanvasElement;
+      ctx.drawImage(source, index * tileSize, 0, tileSize, tileSize);
+    });
+    tilesetTexture.refresh();
   }
 }

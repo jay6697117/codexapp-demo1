@@ -1,5 +1,7 @@
 import Phaser from 'phaser';
 import { GAME_CONFIG } from '@shared/constants';
+import { PIXEL_COLORS } from './pixel-ui';
+import { getMinimapTransform, worldToMinimap, MinimapTransform } from './minimap-utils';
 
 export interface MinimapPlayer {
   id: string;
@@ -21,19 +23,19 @@ export class Minimap {
   private scene: Phaser.Scene;
   private container: Phaser.GameObjects.Container;
   private graphics: Phaser.GameObjects.Graphics;
-  private playerDots: Map<string, Phaser.GameObjects.Arc> = new Map();
+  private grid: Phaser.GameObjects.Graphics;
+  private playerDots: Map<string, Phaser.GameObjects.Rectangle> = new Map();
 
   private readonly size: number = 150;
   private readonly padding: number = 10;
   private readonly mapWidth: number = GAME_CONFIG.MAP_WIDTH;
   private readonly mapHeight: number = GAME_CONFIG.MAP_HEIGHT;
-  private readonly scale: number;
+  private readonly transform: MinimapTransform;
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
-    this.scale = this.size / Math.max(this.mapWidth, this.mapHeight);
+    this.transform = getMinimapTransform(this.mapWidth, this.mapHeight, this.size);
 
-    // Position in bottom-right corner
     const x = scene.cameras.main.width - this.size - this.padding;
     const y = scene.cameras.main.height - this.size - this.padding;
 
@@ -41,30 +43,26 @@ export class Minimap {
     this.container.setScrollFactor(0);
     this.container.setDepth(950);
 
-    // Background
-    const bg = scene.add.rectangle(0, 0, this.size, this.size, 0x000000, 0.6);
+    const bg = scene.add.rectangle(0, 0, this.size, this.size, PIXEL_COLORS.panelBg, 0.9);
     bg.setOrigin(0, 0);
-    bg.setStrokeStyle(2, 0x444444);
+    bg.setStrokeStyle(2, PIXEL_COLORS.minimapBorder);
     this.container.add(bg);
 
-    // Map area (proportionally scaled)
-    const mapDisplayWidth = this.mapWidth * this.scale;
-    const mapDisplayHeight = this.mapHeight * this.scale;
-    const mapOffsetX = (this.size - mapDisplayWidth) / 2;
-    const mapOffsetY = (this.size - mapDisplayHeight) / 2;
-
     const mapArea = scene.add.rectangle(
-      mapOffsetX,
-      mapOffsetY,
-      mapDisplayWidth,
-      mapDisplayHeight,
-      0x1a1a2e,
-      0.8
+      this.transform.offsetX,
+      this.transform.offsetY,
+      this.transform.displayWidth,
+      this.transform.displayHeight,
+      PIXEL_COLORS.panelInset,
+      1
     );
     mapArea.setOrigin(0, 0);
     this.container.add(mapArea);
 
-    // Graphics layer for drawing safe zone
+    this.grid = scene.add.graphics();
+    this.container.add(this.grid);
+    this.drawGrid();
+
     this.graphics = scene.add.graphics();
     this.container.add(this.graphics);
   }
@@ -77,32 +75,26 @@ export class Minimap {
   private updateZone(zone: MinimapZone) {
     this.graphics.clear();
 
-    const centerX = this.worldToMinimapX(zone.x);
-    const centerY = this.worldToMinimapY(zone.y);
-    const currentRadius = zone.currentRadius * this.scale;
-    const targetRadius = zone.targetRadius * this.scale;
+    const center = worldToMinimap(zone.x, zone.y, this.transform);
+    const currentRadius = zone.currentRadius * this.transform.scale;
+    const targetRadius = zone.targetRadius * this.transform.scale;
 
-    // Draw danger zone (red fill outside safe zone)
-    this.graphics.fillStyle(0xff0000, 0.3);
+    this.graphics.fillStyle(0x7f1d1d, 0.25);
     this.graphics.fillRect(0, 0, this.size, this.size);
 
-    // Clear the red inside safe zone
-    this.graphics.fillStyle(0x1a1a2e, 1);
-    this.graphics.fillCircle(centerX, centerY, currentRadius);
+    this.graphics.fillStyle(PIXEL_COLORS.panelInset, 1);
+    this.graphics.fillCircle(center.x, center.y, currentRadius);
 
-    // Current safe zone border (blue)
-    this.graphics.lineStyle(2, 0x00aaff, 0.8);
-    this.graphics.strokeCircle(centerX, centerY, currentRadius);
+    this.graphics.lineStyle(2, PIXEL_COLORS.minimapBorder, 1);
+    this.graphics.strokeCircle(center.x, center.y, currentRadius);
 
-    // If shrinking, show target zone (white dashed effect)
     if (zone.isShrinking) {
-      this.graphics.lineStyle(1, 0xffffff, 0.5);
-      this.graphics.strokeCircle(centerX, centerY, targetRadius);
+      this.graphics.lineStyle(1, 0xf8fafc, 0.6);
+      this.graphics.strokeCircle(center.x, center.y, targetRadius);
     }
   }
 
   private updatePlayers(players: MinimapPlayer[]) {
-    // Remove dots for players that no longer exist
     const currentIds = new Set(players.map(p => p.id));
     this.playerDots.forEach((dot, id) => {
       if (!currentIds.has(id)) {
@@ -111,7 +103,6 @@ export class Minimap {
       }
     });
 
-    // Update or create player dots
     players.forEach(player => {
       if (!player.isAlive) {
         const existingDot = this.playerDots.get(player.id);
@@ -122,33 +113,33 @@ export class Minimap {
         return;
       }
 
-      const x = this.worldToMinimapX(player.x);
-      const y = this.worldToMinimapY(player.y);
-      const color = player.isLocal ? 0x00ff00 : 0xff0000;
+      const pos = worldToMinimap(player.x, player.y, this.transform);
+      const color = player.isLocal ? 0x22c55e : 0xef4444;
       const size = player.isLocal ? 4 : 3;
 
       let dot = this.playerDots.get(player.id);
       if (!dot) {
-        dot = this.scene.add.arc(x, y, size, 0, 360, false, color);
+        dot = this.scene.add.rectangle(pos.x, pos.y, size, size, color, 1);
         dot.setOrigin(0.5);
         this.container.add(dot);
         this.playerDots.set(player.id, dot);
       } else {
-        dot.setPosition(x, y);
+        dot.setPosition(pos.x, pos.y);
       }
     });
   }
 
-  private worldToMinimapX(worldX: number): number {
-    const mapDisplayWidth = this.mapWidth * this.scale;
-    const mapOffsetX = (this.size - mapDisplayWidth) / 2;
-    return mapOffsetX + worldX * this.scale;
-  }
+  private drawGrid() {
+    this.grid.clear();
+    this.grid.lineStyle(1, PIXEL_COLORS.minimapGrid, 0.4);
 
-  private worldToMinimapY(worldY: number): number {
-    const mapDisplayHeight = this.mapHeight * this.scale;
-    const mapOffsetY = (this.size - mapDisplayHeight) / 2;
-    return mapOffsetY + worldY * this.scale;
+    const step = 12;
+    for (let x = 0; x <= this.size; x += step) {
+      this.grid.lineBetween(x, 0, x, this.size);
+    }
+    for (let y = 0; y <= this.size; y += step) {
+      this.grid.lineBetween(0, y, this.size, y);
+    }
   }
 
   setVisible(visible: boolean) {
@@ -159,6 +150,7 @@ export class Minimap {
     this.playerDots.forEach(dot => dot.destroy());
     this.playerDots.clear();
     this.graphics.destroy();
+    this.grid.destroy();
     this.container.destroy();
   }
 }
