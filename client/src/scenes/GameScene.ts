@@ -154,6 +154,29 @@ export class GameScene extends Phaser.Scene {
     // 初始化特效管理器
     this.particleManager = new ParticleManager(this);
 
+    // Day/Night Cycle Overlay (Pumpville Style Atmosphere)
+    const overlay = this.add.rectangle(0, 0, GAME_CONFIG.MAP_WIDTH, GAME_CONFIG.MAP_HEIGHT, 0x1e1e2e, 0);
+    overlay.setScrollFactor(0); // If we wanted HUD-like overlay, but we want world overlay.
+    // Actually world overlay should cover the whole map.
+    // Let's make it a UI overlay that "tints" the screen.
+    overlay.width = this.cameras.main.width;
+    overlay.height = this.cameras.main.height;
+    overlay.setOrigin(0, 0);
+    overlay.setDepth(100); // Below HUD but above game? HUD is distinct.
+    // Let's put it at high depth but check HUD depth. HUDs usually just added.
+    // Ideally we use a blend mode.
+
+    this.tweens.add({
+      targets: overlay,
+      alpha: 0.3, // Night darkness
+      duration: 30000, // 30s day/night cycle
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut'
+    });
+
+    // Resize overlay on resize event if we had one.
+
     this.registerTestHooks();
 
     // 每秒检查毒圈伤害

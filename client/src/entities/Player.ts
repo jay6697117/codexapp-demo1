@@ -16,6 +16,7 @@ export class Player extends Phaser.GameObjects.Container {
   public isLocalPlayer: boolean;
 
   private sprite: Phaser.GameObjects.Sprite;
+  private shadow: Phaser.GameObjects.Image; // Shadow blob
   private nameText: Phaser.GameObjects.Text;
   private bodyPhysics!: Phaser.Physics.Arcade.Body;
 
@@ -66,6 +67,11 @@ export class Player extends Phaser.GameObjects.Container {
     this.isLocalPlayer = isLocalPlayer;
     this.characterConfig = CHARACTERS[characterType];
     this.moveSpeed = GAME_CONFIG.PLAYER_SPEED * this.characterConfig.speedModifier;
+
+    // 创建阴影 (Pumpville Visual Polish)
+    this.shadow = scene.add.image(0, 12, 'shadow');
+    this.shadow.setAlpha(0.6);
+    this.add(this.shadow);
 
     // 创建玩家精灵
     this.sprite = scene.add.sprite(0, 0, `player_${characterType}_down`);

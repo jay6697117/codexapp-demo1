@@ -20,7 +20,18 @@ export class AssetGenerator {
     this.generateCharacterTextures();
     this.generateBulletTexture();
     this.generateItemTextures();
+    this.generateItemTextures();
     this.generateTileTextures();
+    this.generateShadowTexture();
+  }
+
+  private generateShadowTexture() {
+    if (this.scene.textures.exists('shadow')) return;
+    const graphics = this.scene.make.graphics({ x: 0, y: 0 });
+    graphics.fillStyle(0x000000, 0.4);
+    graphics.fillEllipse(16, 16, 24, 12);
+    graphics.generateTexture('shadow', 32, 32);
+    graphics.destroy();
   }
 
   private generateCharacterTextures() {
@@ -34,6 +45,22 @@ export class AssetGenerator {
 
         const graphics = this.scene.make.graphics({ x: 0, y: 0 });
         renderPatternToGraphics(graphics, pattern, palette, 2);
+
+        // Procedural Accessories (Pumpville Style)
+        // Add random sunglasses or headband for "Social Avatar" feel
+        // Hash based on name+dir to be deterministic per frame but we want per character...
+        // For static textures we burn it in. Let's give everyone shades for now to look cool.
+        if (dir === 'down' || dir === 'side') {
+           graphics.fillStyle(0x000000, 1);
+           // Simple shades (2x1 px scaled by 2 = 4x2)
+           // Approx eye pos: y=10-12 (5-6 source pixels down)
+           // Source pattern width 16. Center is 8.
+           // Draw shades
+           graphics.fillRect(12, 10, 8, 4);
+           graphics.fillStyle(0x14f195, 1); // Neon reflection
+           graphics.fillRect(14, 10, 2, 2);
+        }
+
         graphics.generateTexture(key, 32, 32);
         graphics.destroy();
       });
@@ -85,6 +112,10 @@ export class AssetGenerator {
       water: 'water',
       grass: 'grass',
       lava: 'sand',
+      cobblestone: 'cobblestone',
+      fence: 'fence',
+      flower: 'flower_grass',
+      roof: 'roof',
     };
 
     Object.entries(tileMappings).forEach(([name, patternKey]) => {
@@ -102,7 +133,10 @@ export class AssetGenerator {
     // Generate Composite Tileset
     if (this.scene.textures.exists('tileset_pixel')) return;
 
-    const tileKeys = ['tile_ground', 'tile_wall', 'tile_water', 'tile_grass', 'tile_lava'];
+    const tileKeys = [
+      'tile_ground', 'tile_wall', 'tile_water', 'tile_grass', 'tile_lava',
+      'tile_cobblestone', 'tile_fence', 'tile_flower', 'tile_roof'
+    ];
     const tileSize = 32;
     // We need to wait for textures to be available if we were loading them async,
     // but since we just generated them synchronously, we can proceed.
