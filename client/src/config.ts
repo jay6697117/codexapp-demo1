@@ -6,8 +6,12 @@ export const phaserConfig: Phaser.Types.Core.GameConfig = {
   parent: 'game-container',
   width: 800,
   height: 600,
-  pixelArt: true,
-  roundPixels: true,
+  antialias: false,
+  render: {
+    pixelArt: true,
+    roundPixels: true,
+    mipmapFilter: 'NEAREST',
+  },
   backgroundColor: '#1a1a2e',
   physics: {
     default: 'arcade',
