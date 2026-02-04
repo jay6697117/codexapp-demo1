@@ -8,6 +8,7 @@ import { BulletManager } from '../managers/BulletManager';
 import { ItemManager } from '../managers/ItemManager';
 import { SafeZoneManager, ZoneState } from '../managers/SafeZoneManager';
 import { KillFeed } from '../ui/KillFeed';
+import { GameOverScreen, PlayerResult } from '../ui/GameOverScreen';
 import { networkManager } from '../network';
 
 export class GameScene extends Phaser.Scene {
@@ -17,6 +18,7 @@ export class GameScene extends Phaser.Scene {
   private itemManager!: ItemManager;
   private safeZoneManager!: SafeZoneManager;
   private killFeed!: KillFeed;
+  private gameOverScreen!: GameOverScreen;
 
   // 多人模式相关
   private remotePlayers: Map<string, RemotePlayer> = new Map();
@@ -118,6 +120,9 @@ export class GameScene extends Phaser.Scene {
     // 初始化击杀信息显示
     this.killFeed = new KillFeed(this);
 
+    // 初始化游戏结束界面
+    this.gameOverScreen = new GameOverScreen(this);
+
     // 每秒检查毒圈伤害
     this.zoneDamageTimer = this.time.addEvent({
       delay: 1000,
@@ -194,6 +199,26 @@ export class GameScene extends Phaser.Scene {
       if (data.victimId === myId) {
         this.localPlayer.die();
       }
+    });
+
+    // 监听游戏结束
+    networkManager.on('gameEnd', (data: { rankings: any[] }) => {
+      const { rankings } = data;
+      const myId = networkManager.getSessionId();
+
+      const results: PlayerResult[] = rankings.map((r: any) => ({
+        id: r.id,
+        name: r.name,
+        rank: r.rank,
+        kills: r.kills,
+        damage: r.damage || 0,
+        isLocal: r.id === myId,
+      }));
+
+      const localResult = results.find(r => r.isLocal);
+      const localRank = localResult?.rank || results.length;
+
+      this.gameOverScreen.show(localRank, results.length, results);
     });
 
     // 初始化已存在的玩家
